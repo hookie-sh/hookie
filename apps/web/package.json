@@ -12,18 +12,26 @@
     "check-types": "next typegen && tsc --noEmit"
   },
   "dependencies": {
-    "@repo/ui": "workspace:*",
+    "@clerk/nextjs": "^6.34.1",
+    "@hookform/resolvers": "^5.2.2",
+    "@hookie/ui": "workspace:*",
+    "lucide-react": "^0.552.0",
     "next": "^16.0.0",
     "react": "^19.2.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-hook-form": "^7.66.0",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
-    "@repo/eslint-config": "workspace:*",
-    "@repo/typescript-config": "workspace:*",
+    "@hookie/eslint-config": "workspace:*",
+    "@hookie/typescript-config": "workspace:*",
+    "@tailwindcss/postcss": "^4.1.16",
     "@types/node": "^22.15.3",
     "@types/react": "19.1.0",
     "@types/react-dom": "19.1.1",
+    "autoprefixer": "^10.4.21",
     "eslint": "^9.38.0",
+    "postcss": "^8.5.6",
     "typescript": "5.9.2"
   }
 }
