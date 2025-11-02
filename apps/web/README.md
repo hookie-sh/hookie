@@ -1,5 +1,27 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/create-next-app).
 
+## Environment Variables
+
+Create a `.env.local` file in the root of this directory with the following variables:
+
+### Required Variables
+
+- `CLERK_WEBHOOK_SECRET` - Webhook signing secret from Clerk dashboard (used to verify webhook requests)
+- `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
+- `SUPABASE_SERVICE_ROLE_KEY` - Supabase service role key (used for server-side operations that bypass RLS)
+
+### Clerk Setup
+
+To set up the Clerk webhook:
+
+1. Go to your Clerk Dashboard → Webhooks → Add Endpoint
+2. Set the endpoint URL to: `https://your-domain.com/webhooks/clerk`
+3. Select the following events to subscribe to:
+   - `user.created`
+   - `user.updated`
+   - `user.deleted`
+4. Copy the webhook signing secret and add it to your `.env.local` as `CLERK_WEBHOOK_SECRET`
+
 ## Getting Started
 
 First, run the development server:
