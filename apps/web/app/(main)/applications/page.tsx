@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
+import useSWR, { mutate } from "swr";
 import { Button } from "@hookie/ui/components/button";
 import {
   Dialog,
@@ -20,14 +21,33 @@ import { ApplicationCard } from "@/components/application-card";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createApplicationSchema, type CreateApplicationInput } from "@/data/apps/validation";
+import { fetcher } from "@/utils/api";
+
+interface Application {
+  id: string;
+  name: string;
+  description?: string;
+  topicCount: number;
+}
 
 export default function ApplicationsPage() {
   const { userId } = useAuth();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
-  const [applications, setApplications] = useState<
-    Array<{ id: string; name: string; description?: string; topicCount: number }>
-  >([]);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const {
+    data: applications,
+    error,
+    isLoading,
+  } = useSWR<Application[]>(
+    userId ? "/api/applications" : null,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+    }
+  );
 
   const {
     control,
@@ -44,18 +64,36 @@ export default function ApplicationsPage() {
 
   const onSubmit = async (data: CreateApplicationInput) => {
     try {
-      // TODO: Replace with actual API call
-      const newApp = {
-        id: Math.random().toString(36).substring(7),
-        name: data.name,
-        description: data.description,
-        topicCount: 0,
-      };
-      setApplications([...applications, newApp]);
+      setSubmitError(null);
+      const response = await fetch("/api/applications", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create application");
+      }
+
+      const newApp = await response.json();
+      
+      // Optimistically update the cache, then revalidate
+      mutate("/api/applications", (current: Application[] | undefined) => {
+        return current ? [newApp, ...current] : [newApp];
+      }, false);
+
+      // Revalidate to confirm with server
+      await mutate("/api/applications");
+
       setIsOpen(false);
       reset();
-    } catch (error) {
-      console.error("Failed to create application:", error);
+      setSubmitError(null);
+    } catch (err) {
+      console.error("Failed to create application:", err);
+      setSubmitError(err instanceof Error ? err.message : "Failed to create application");
     }
   };
 
@@ -139,8 +177,19 @@ export default function ApplicationsPage() {
           </Dialog>
         </div>
 
+        {/* Error Messages */}
+        {(error || submitError) && (
+          <div className="mb-4 p-4 bg-destructive/10 text-destructive rounded-md">
+            {submitError || (error instanceof Error ? error.message : "Failed to load applications")}
+          </div>
+        )}
+
         {/* Applications Grid */}
-        {applications.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Loading applications...</p>
+          </div>
+        ) : !applications || applications.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground mb-4">
               No applications yet. Create your first application to get started.

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import useSWR, { mutate } from "swr";
 import { Button } from "@hookie/ui/components/button";
 import {
   Dialog,
@@ -23,31 +24,56 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { createTopicSchema, type CreateTopicInput } from "@/data/topics/validation";
 import { generateWebhookUrl } from "@/utils/webhooks";
 import { ArrowLeft, Webhook, Activity, TrendingUp } from "lucide-react";
+import { fetcher } from "@/utils/api";
+
+interface Application {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+interface Topic {
+  id: string;
+  name: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export default function ApplicationDetailPage() {
   const params = useParams();
   const router = useRouter();
   const applicationId = params.id as string;
   const [isOpen, setIsOpen] = useState(false);
-  const [application, setApplication] = useState<{
-    id: string;
-    name: string;
-    description?: string;
-  } | null>(null);
-  const [topics, setTopics] = useState<
-    Array<{ id: string; name: string; description?: string }>
-  >([]);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // TODO: Replace with actual API call to fetch application
-    setApplication({
-      id: applicationId,
-      name: "Sample Application",
-      description: "A sample application",
-    });
-    // TODO: Replace with actual API call to fetch topics
-    setTopics([]);
-  }, [applicationId]);
+  const {
+    data: application,
+    error,
+    isLoading,
+  } = useSWR<Application>(
+    applicationId ? `/api/applications/${applicationId}` : null,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      errorRetryCount: 3,
+    }
+  );
+
+  const {
+    data: topics,
+    error: topicsError,
+    isLoading: topicsLoading,
+  } = useSWR<Topic[]>(
+    applicationId ? `/api/applications/${applicationId}/topics` : null,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      errorRetryCount: 3,
+    }
+  );
 
   const {
     control,
@@ -64,29 +90,97 @@ export default function ApplicationDetailPage() {
 
   const onSubmit = async (data: CreateTopicInput) => {
     try {
-      // TODO: Replace with actual API call
-      const newTopic = {
-        id: Math.random().toString(36).substring(7),
-        name: data.name,
-        description: data.description,
-      };
-      setTopics([...topics, newTopic]);
+      setSubmitError(null);
+      const response = await fetch(`/api/applications/${applicationId}/topics`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create topic");
+      }
+
+      const newTopic = await response.json();
+
+      // Optimistically update the cache, then revalidate
+      mutate(
+        `/api/applications/${applicationId}/topics`,
+        (current: Topic[] | undefined) => {
+          return current ? [newTopic, ...current] : [newTopic];
+        },
+        false
+      );
+
+      // Revalidate to confirm with server
+      await mutate(`/api/applications/${applicationId}/topics`);
+
+      // Also update the applications list to reflect new topic count
+      await mutate("/api/applications");
+
       setIsOpen(false);
       reset();
-    } catch (error) {
-      console.error("Failed to create topic:", error);
+      setSubmitError(null);
+    } catch (err) {
+      console.error("Failed to create topic:", err);
+      setSubmitError(err instanceof Error ? err.message : "Failed to create topic");
     }
   };
 
-  const handleDeleteTopic = (topicId: string) => {
-    // TODO: Replace with actual API call
-    setTopics(topics.filter((t) => t.id !== topicId));
+  const handleDeleteTopic = async (topicId: string) => {
+    try {
+      const response = await fetch(`/api/topics/${topicId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete topic");
+      }
+
+      // Optimistically update the cache, then revalidate
+      mutate(
+        `/api/applications/${applicationId}/topics`,
+        (current: Topic[] | undefined) => {
+          return current ? current.filter((t) => t.id !== topicId) : [];
+        },
+        false
+      );
+
+      // Revalidate to confirm with server
+      await mutate(`/api/applications/${applicationId}/topics`);
+
+      // Also update the applications list to reflect new topic count
+      await mutate("/api/applications");
+    } catch (err) {
+      console.error("Failed to delete topic:", err);
+      // Revalidate on error to get accurate state
+      await mutate(`/api/applications/${applicationId}/topics`);
+    }
   };
 
-  if (!application) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (error || !application) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive mb-4">
+            {error instanceof Error ? error.message : "Application not found"}
+          </p>
+          <Link href="/applications">
+            <Button variant="outline">Back to Applications</Button>
+          </Link>
+        </div>
       </div>
     );
   }
@@ -119,7 +213,7 @@ export default function ApplicationDetailPage() {
               <Webhook className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{topics.length}</div>
+              <div className="text-2xl font-bold">{topics?.length || 0}</div>
             </CardContent>
           </Card>
           <Card>
@@ -225,8 +319,24 @@ export default function ApplicationDetailPage() {
           </Dialog>
         </div>
 
+        {/* Error Messages */}
+        {(topicsError || submitError) && (
+          <div className="mb-4 p-4 bg-destructive/10 text-destructive rounded-md">
+            {submitError ||
+              (topicsError instanceof Error
+                ? topicsError.message
+                : "Failed to load topics")}
+          </div>
+        )}
+
         {/* Topics List */}
-        {topics.length === 0 ? (
+        {topicsLoading ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground">Loading topics...</p>
+            </CardContent>
+          </Card>
+        ) : !topics || topics.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <p className="text-muted-foreground mb-4">
