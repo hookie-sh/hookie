@@ -1,32 +1,11 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@hookie/ui/components/card";
 import { Button } from "@hookie/ui/components/button";
 import { Folder, Webhook, TrendingUp } from "lucide-react";
 
 export default async function DashboardPage() {
-  const { userId } = await auth();
-
-  if (!userId) {
-    redirect("/sign-in");
-  }
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Hookie</h1>
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard/applications">
-              <Button variant="outline">Applications</Button>
-            </Link>
-            <Button variant="ghost">Settings</Button>
-          </div>
-        </div>
-      </header>
-
+    <>
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
@@ -89,7 +68,7 @@ export default async function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Link href="/dashboard/applications">
+            <Link href="/applications">
               <Button>Create Application</Button>
             </Link>
           </CardContent>
@@ -110,6 +89,7 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </main>
-    </div>
+    </>
   );
 }
+

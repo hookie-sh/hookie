@@ -1,3 +1,4 @@
+import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { Button } from "@hookie/ui/components/button";
 import {
   Card,
@@ -15,14 +16,24 @@ export default function Home() {
       {/* Header */}
       <header className="border-b sticky top-0 z-50 w-full bg-background">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Hookie</h1>
+          <Link href="/">
+            <h1 className="text-2xl font-bold">Hookie</h1>
+          </Link>
           <div className="flex gap-4">
-            <Link href="/sign-in">
-              <Button variant="ghost">Sign In</Button>
-            </Link>
-            <Link href="/sign-up">
-              <Button>Get Started</Button>
-            </Link>
+            <SignedOut>
+              <Link href="/sign-in">
+                <Button variant="ghost">Sign In</Button>
+              </Link>
+              <Link href="/sign-up">
+                <Button>Get Started</Button>
+              </Link>
+            </SignedOut>
+            <SignedIn>
+              <Link href="/dashboard">
+                <Button variant="ghost">Dashboard</Button>
+              </Link>
+              <UserButton />
+            </SignedIn>
           </div>
         </div>
       </header>

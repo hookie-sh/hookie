@@ -60,20 +60,7 @@ export default function ApplicationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Hookie</h1>
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard">
-              <Button variant="ghost">Dashboard</Button>
-            </Link>
-            <Button variant="ghost">Settings</Button>
-          </div>
-        </div>
-      </header>
-
+    <>
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8 flex justify-between items-center">
@@ -165,12 +152,13 @@ export default function ApplicationsPage() {
               <ApplicationCard
                 key={app.id}
                 {...app}
-                href={`/dashboard/applications/${app.id}`}
+                href={`/applications/${app.id}`}
               />
             ))}
           </div>
         )}
       </main>
-    </div>
+    </>
   );
 }
+
