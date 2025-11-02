@@ -1,0 +1,14 @@
+{
+  "name": "scripts",
+  "version": "1.0.0",
+  "scripts": {
+    "sync:users": "zx clerk/sync-users.mjs"
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@clerk/backend": "^2.19.1",
+    "@supabase/supabase-js": "^2.78.0",
+    "dotenv": "^17.2.3",
+    "zx": "^8.8.5"
+  }
+}
