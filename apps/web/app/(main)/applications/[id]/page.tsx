@@ -1,10 +1,21 @@
 "use client";
 
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import useSWR, { mutate } from "swr";
+import { TopicCard } from "@/components/topic-card";
+import {
+  createTopicSchema,
+  type CreateTopicInput,
+} from "@/data/topics/validation";
+import { fetcher } from "@/utils/api";
+import { generateWebhookUrl } from "@/utils/webhooks";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@hookie/ui/components/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@hookie/ui/components/card";
 import {
   Dialog,
   DialogContent,
@@ -16,15 +27,13 @@ import {
 } from "@hookie/ui/components/dialog";
 import { Input } from "@hookie/ui/components/input";
 import { Label } from "@hookie/ui/components/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@hookie/ui/components/card";
 import { Separator } from "@hookie/ui/components/separator";
-import { TopicCard } from "@/components/topic-card";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { createTopicSchema, type CreateTopicInput } from "@/data/topics/validation";
-import { generateWebhookUrl } from "@/utils/webhooks";
-import { ArrowLeft, Webhook, Activity, TrendingUp } from "lucide-react";
-import { fetcher } from "@/utils/api";
+import { Activity, ArrowLeft, TrendingUp, Webhook } from "lucide-react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import useSWR, { mutate } from "swr";
 
 interface Application {
   id: string;
@@ -91,13 +100,16 @@ export default function ApplicationDetailPage() {
   const onSubmit = async (data: CreateTopicInput) => {
     try {
       setSubmitError(null);
-      const response = await fetch(`/api/applications/${applicationId}/topics`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      const response = await fetch(
+        `/api/applications/${applicationId}/topics`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -126,7 +138,9 @@ export default function ApplicationDetailPage() {
       setSubmitError(null);
     } catch (err) {
       console.error("Failed to create topic:", err);
-      setSubmitError(err instanceof Error ? err.message : "Failed to create topic");
+      setSubmitError(
+        err instanceof Error ? err.message : "Failed to create topic"
+      );
     }
   };
 
@@ -209,7 +223,9 @@ export default function ApplicationDetailPage() {
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Topics</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Total Topics
+              </CardTitle>
               <Webhook className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -218,7 +234,9 @@ export default function ApplicationDetailPage() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Webhooks Today</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Webhooks Today
+              </CardTitle>
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -228,7 +246,9 @@ export default function ApplicationDetailPage() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Success Rate
+              </CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -340,7 +360,8 @@ export default function ApplicationDetailPage() {
           <Card>
             <CardContent className="py-12 text-center">
               <p className="text-muted-foreground mb-4">
-                No topics yet. Create your first topic to start receiving webhooks.
+                No topics yet. Create your first topic to start receiving
+                webhooks.
               </p>
             </CardContent>
           </Card>
@@ -368,7 +389,7 @@ export default function ApplicationDetailPage() {
         <Card>
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
-          <CardDescription>
+            <CardDescription>
               Webhook events and activity will appear here
             </CardDescription>
           </CardHeader>
@@ -383,4 +404,3 @@ export default function ApplicationDetailPage() {
     </>
   );
 }
-
