@@ -17,7 +17,7 @@ import { Input } from "@hookie/ui/components/input";
 import { Label } from "@hookie/ui/components/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@hookie/ui/components/card";
 import { Separator } from "@hookie/ui/components/separator";
-import { TopicCard } from "@hookie/ui/topic-card";
+import { TopicCard } from "@/components/topic-card";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createTopicSchema, type CreateTopicInput } from "@/data/topics/validation";

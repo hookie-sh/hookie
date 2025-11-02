@@ -16,7 +16,7 @@ import {
 } from "@hookie/ui/components/dialog";
 import { Input } from "@hookie/ui/components/input";
 import { Label } from "@hookie/ui/components/label";
-import { ApplicationCard } from "@hookie/ui/application-card";
+import { ApplicationCard } from "@/components/application-card";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createApplicationSchema, type CreateApplicationInput } from "@/data/apps/validation";

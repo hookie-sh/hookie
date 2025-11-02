@@ -1,5 +1,5 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/card";
-import { Button } from "./components/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@hookie/ui/components/card";
+import { Button } from "@hookie/ui/components/button";
 import { Copy, Trash2 } from "lucide-react";
 
 export interface TopicCardProps {
@@ -66,3 +66,4 @@ export function TopicCard({
     </Card>
   );
 }
+

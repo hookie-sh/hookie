@@ -1,5 +1,5 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/card";
-import { Badge } from "./components/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@hookie/ui/components/card";
+import { Badge } from "@hookie/ui/components/badge";
 
 export interface ApplicationCardProps {
   id: string;
@@ -40,3 +40,4 @@ export function ApplicationCard({
 
   return CardContent_;
 }
+

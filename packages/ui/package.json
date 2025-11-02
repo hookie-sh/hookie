@@ -5,8 +5,7 @@
   "private": true,
   "exports": {
     "./*": "./src/*.tsx",
-    "./components/*": "./src/components/*.tsx",
-    "./tailwind.css": "./src/tailwind.css"
+    "./components/*": "./src/components/*.tsx"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
