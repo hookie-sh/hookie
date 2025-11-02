@@ -30,6 +30,12 @@ importers:
       '@clerk/nextjs':
         specifier: ^6.34.1
         version: 6.34.1(next@16.0.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@clerk/themes':
+        specifier: ^2.4.30
+        version: 2.4.30
+      '@clerk/types':
+        specifier: ^4.96.0
+        version: 4.96.0
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.2.2(react-hook-form@7.66.0(react@19.2.0))
@@ -257,6 +263,10 @@ packages:
         optional: true
       react-dom:
         optional: true
+
+  '@clerk/themes@2.4.30':
+    resolution: {integrity: sha512-XSNlExycBCx5XrzTOuWXZouDCVceulZcoADYqTlhO9XC7NSmHZceRE894u6a0rYje5lkhfxrp0tfOQVXCD/s9w==}
+    engines: {node: '>=18.17.0'}
 
   '@clerk/types@4.96.0':
     resolution: {integrity: sha512-07AoSkx6CF1YjjRFa75HtrmZuVe+8X9WskWZJ6bC1juxYKf0RQfVbNHoEjMuJMh2+Ao6LYrNcrTu8gNwB2O4MA==}
@@ -2422,6 +2432,11 @@ snapshots:
     optionalDependencies:
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
+
+  '@clerk/themes@2.4.30':
+    dependencies:
+      '@clerk/types': 4.96.0
+      tslib: 2.8.1
 
   '@clerk/types@4.96.0':
     dependencies:

@@ -1,6 +1,7 @@
+import { ClerkProvider } from "@clerk/nextjs";
+import { shadcn } from "@clerk/themes";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { ClerkProvider } from "@clerk/nextjs";
 import "./css/globals.css";
 
 const geistSans = localFont({
@@ -23,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    <ClerkProvider appearance={{ baseTheme: shadcn }}>
       <html lang="en">
         <body className={`${geistSans.variable} ${geistMono.variable}`}>
           {children}
