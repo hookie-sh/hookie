@@ -11,6 +11,7 @@ var (
 	relayURL  string
 	orgID     string
 	orgIDFlag string
+	debug     bool
 )
 
 var rootCmd = &cobra.Command{
@@ -29,5 +30,6 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().StringVar(&relayURL, "relay-url", "", "Relay service URL (default: localhost:50051 or HOOKIE_RELAY_URL env var)")
 	rootCmd.PersistentFlags().StringVar(&orgID, "org-id", "", "Organization ID (can be set globally or per command)")
+	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Show detailed information (headers, query params, body, etc.)")
 }
 

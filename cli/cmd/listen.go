@@ -1,10 +1,14 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -30,6 +34,19 @@ var listenCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if appIDFlag == "" {
 			return fmt.Errorf("--app-id is required")
+		}
+
+		// Parse and validate endpoint URL if provided
+		var endpointURL *url.URL
+		if len(args) > 0 {
+			parsedURL, err := url.Parse(args[0])
+			if err != nil {
+				return fmt.Errorf("invalid endpoint URL: %w", err)
+			}
+			if parsedURL.Scheme == "" || parsedURL.Host == "" {
+				return fmt.Errorf("invalid endpoint URL: must include scheme and host (e.g., http://localhost:3001/webhooks)")
+			}
+			endpointURL = parsedURL
 		}
 
 		cfg, err := config.Load()
@@ -83,9 +100,17 @@ var listenCmd = &cobra.Command{
 		if effectiveOrgID != "" {
 			subscriptionInfo += fmt.Sprintf(", org: %s", color.CyanString(effectiveOrgID))
 		}
+		if endpointURL != nil {
+			subscriptionInfo += fmt.Sprintf(", forwarding to: %s", color.CyanString(endpointURL.String()))
+		}
 
 		fmt.Printf("Listening for events (%s)...\n", subscriptionInfo)
 		fmt.Println("Press Ctrl+C to stop\n")
+
+		// Create HTTP client with timeout for forwarding
+		httpClient := &http.Client{
+			Timeout: 10 * time.Second,
+		}
 
 		for {
 			event, err := stream.Recv()
@@ -96,15 +121,20 @@ var listenCmd = &cobra.Command{
 				return fmt.Errorf("failed to receive event: %w", err)
 			}
 
-			printEvent(event)
+			printEvent(event, debug)
+
+			// Forward event to endpoint if provided
+			if endpointURL != nil {
+				go forwardEvent(httpClient, event, endpointURL)
+			}
 		}
 	},
 }
 
-func printEvent(event *proto.Event) {
+func printEvent(event *proto.Event, debug bool) {
 	timestamp := time.Unix(0, event.Timestamp).Format(time.RFC3339)
 	
-	fmt.Printf("%s [%s] %s %s\n",
+	fmt.Printf("%s [%s] %s %s",
 		color.YellowString(timestamp),
 		color.GreenString(event.AppId),
 		color.MagentaString(event.Method),
@@ -112,47 +142,149 @@ func printEvent(event *proto.Event) {
 	)
 
 	if event.TopicId != "" {
-		fmt.Printf("  Topic: %s\n", color.CyanString(event.TopicId))
-	}
-
-	// Parse and print headers
-	if event.Headers != "" {
-		var headers map[string]interface{}
-		if err := json.Unmarshal([]byte(event.Headers), &headers); err == nil {
-			fmt.Println("  Headers:")
-			for k, v := range headers {
-				fmt.Printf("    %s: %v\n", k, v)
-			}
-		}
-	}
-
-	// Parse and print query params
-	if event.Query != "" && event.Query != "{}" {
-		var query map[string]interface{}
-		if err := json.Unmarshal([]byte(event.Query), &query); err == nil && len(query) > 0 {
-			fmt.Println("  Query:")
-			for k, v := range query {
-				fmt.Printf("    %s: %v\n", k, v)
-			}
-		}
-	}
-
-	// Decode and print body
-	if event.Body != "" {
-		bodyBytes, err := base64.StdEncoding.DecodeString(event.Body)
-		if err == nil {
-			var bodyJSON interface{}
-			if err := json.Unmarshal(bodyBytes, &bodyJSON); err == nil {
-				bodyPretty, _ := json.MarshalIndent(bodyJSON, "    ", "  ")
-				fmt.Println("  Body:")
-				fmt.Println(string(bodyPretty))
-			} else {
-				fmt.Printf("  Body: %s\n", string(bodyBytes))
-			}
-		}
+		fmt.Printf(" (topic: %s)", color.CyanString(event.TopicId))
 	}
 
 	fmt.Println()
+
+	// Only show detailed info in debug mode
+	if debug {
+		// Parse and print headers
+		if event.Headers != "" {
+			var headers map[string]interface{}
+			if err := json.Unmarshal([]byte(event.Headers), &headers); err == nil {
+				fmt.Println("  Headers:")
+				for k, v := range headers {
+					fmt.Printf("    %s: %v\n", k, v)
+				}
+			}
+		}
+
+		// Parse and print query params
+		if event.Query != "" && event.Query != "{}" {
+			var query map[string]interface{}
+			if err := json.Unmarshal([]byte(event.Query), &query); err == nil && len(query) > 0 {
+				fmt.Println("  Query:")
+				for k, v := range query {
+					fmt.Printf("    %s: %v\n", k, v)
+				}
+			}
+		}
+
+		// Decode and print body
+		if event.Body != "" {
+			bodyBytes, err := base64.StdEncoding.DecodeString(event.Body)
+			if err == nil {
+				var bodyJSON interface{}
+				if err := json.Unmarshal(bodyBytes, &bodyJSON); err == nil {
+					bodyPretty, _ := json.MarshalIndent(bodyJSON, "    ", "  ")
+					fmt.Println("  Body:")
+					fmt.Println(string(bodyPretty))
+				} else {
+					fmt.Printf("  Body: %s\n", string(bodyBytes))
+				}
+			}
+		}
+
+		fmt.Println()
+	}
+}
+
+func forwardEvent(client *http.Client, event *proto.Event, baseURL *url.URL) {
+	// Build the full URL with query parameters
+	forwardURL := *baseURL
+	
+	// Parse and add query parameters from the event
+	if event.Query != "" && event.Query != "{}" {
+		var queryParams map[string]interface{}
+		if err := json.Unmarshal([]byte(event.Query), &queryParams); err == nil {
+			query := forwardURL.Query()
+			for k, v := range queryParams {
+				// Convert value to string
+				var val string
+				switch v := v.(type) {
+				case string:
+					val = v
+				case []interface{}:
+					// Handle arrays by taking first element or joining
+					if len(v) > 0 {
+						val = fmt.Sprintf("%v", v[0])
+					}
+				default:
+					val = fmt.Sprintf("%v", v)
+				}
+				query.Add(k, val)
+			}
+			forwardURL.RawQuery = query.Encode()
+		}
+	}
+
+	// Decode body
+	var bodyReader io.Reader
+	if event.Body != "" {
+		bodyBytes, err := base64.StdEncoding.DecodeString(event.Body)
+		if err == nil {
+			bodyReader = bytes.NewReader(bodyBytes)
+		}
+	}
+
+	// Create request with original method
+	req, err := http.NewRequest(event.Method, forwardURL.String(), bodyReader)
+	if err != nil {
+		fmt.Printf("  %s failed to create request: %v\n", color.RedString("✗"), err)
+		return
+	}
+
+	// Parse and set headers
+	hasContentType := false
+	if event.Headers != "" {
+		var headers map[string]interface{}
+		if err := json.Unmarshal([]byte(event.Headers), &headers); err == nil {
+			for k, v := range headers {
+				// Skip Host header as it will be set automatically
+				if k == "Host" {
+					continue
+				}
+				// Track if Content-Type is in headers
+				if k == "Content-Type" {
+					hasContentType = true
+				}
+				// Convert value to string
+				var val string
+				switch v := v.(type) {
+				case string:
+					val = v
+				case []interface{}:
+					if len(v) > 0 {
+						val = fmt.Sprintf("%v", v[0])
+					}
+				default:
+					val = fmt.Sprintf("%v", v)
+				}
+				req.Header.Set(k, val)
+			}
+		}
+	}
+
+	// Set Content-Type if not already set from headers
+	if !hasContentType && event.ContentType != "" {
+		req.Header.Set("Content-Type", event.ContentType)
+	}
+
+	// Send request
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("  %s failed to forward: %v\n", color.RedString("✗"), err)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Log success
+	fmt.Printf("  %s forwarded to %s (status: %d)\n",
+		color.GreenString("→"),
+		color.CyanString(forwardURL.String()),
+		resp.StatusCode,
+	)
 }
 
 func init() {
