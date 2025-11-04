@@ -24,6 +24,7 @@ coverage
 out/
 build
 dist
+bin
 
 
 # Debug

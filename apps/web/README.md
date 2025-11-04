@@ -8,7 +8,7 @@ Create a `.env.local` file in the root of this directory with the following vari
 
 - `CLERK_WEBHOOK_SECRET` - Webhook signing secret from Clerk dashboard (used to verify webhook requests)
 - `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
-- `SUPABASE_SERVICE_ROLE_KEY` - Supabase service role key (used for server-side operations that bypass RLS)
+- `SUPABASE_SECRET_KEY` - Supabase service role key (used for server-side operations that bypass RLS)
 
 ### Clerk Setup
 

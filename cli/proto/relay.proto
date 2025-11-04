@@ -1,0 +1,110 @@
+syntax = "proto3";
+
+package relay;
+
+option go_package = "github.com/hookie/cli/proto;proto";
+
+// Relay service for streaming webhook events
+service RelayService {
+  // Subscribe to webhook events for an application and/or topics
+  rpc Subscribe(SubscribeRequest) returns (stream Event);
+  
+  // List applications for the authenticated user
+  rpc ListApplications(ListApplicationsRequest) returns (ListApplicationsResponse);
+  
+  // List topics for a specific application
+  rpc ListTopics(ListTopicsRequest) returns (ListTopicsResponse);
+}
+
+// Request to subscribe to events
+message SubscribeRequest {
+  // Application ID (required)
+  string app_id = 1;
+  
+  // Optional: specific topic ID to subscribe to. If empty, subscribes to all topics for the application
+  string topic_id = 2;
+  
+  // Optional: organization ID context (for filtering/verification)
+  string org_id = 3;
+}
+
+// Webhook event message
+message Event {
+  // HTTP method
+  string method = 1;
+  
+  // Full URL
+  string url = 2;
+  
+  // Request path
+  string path = 3;
+  
+  // Query parameters (JSON string)
+  string query = 4;
+  
+  // Request headers (JSON string)
+  string headers = 5;
+  
+  // Request body (base64 encoded)
+  string body = 6;
+  
+  // Content type
+  string content_type = 7;
+  
+  // Content length
+  string content_length = 8;
+  
+  // Remote address
+  string remote_addr = 9;
+  
+  // Timestamp (nanoseconds since epoch)
+  int64 timestamp = 10;
+  
+  // Application ID
+  string app_id = 11;
+  
+  // Topic ID
+  string topic_id = 12;
+}
+
+// Request to list applications
+message ListApplicationsRequest {
+  // Optional: filter by organization ID. If not provided, returns all accessible applications
+  string org_id = 1;
+}
+
+// Response with list of applications
+message ListApplicationsResponse {
+  repeated Application applications = 1;
+}
+
+// Application message
+message Application {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  int64 created_at = 4;
+  int64 updated_at = 5;
+  int32 topic_count = 6;
+}
+
+// Request to list topics
+message ListTopicsRequest {
+  // Application ID
+  string app_id = 1;
+}
+
+// Response with list of topics
+message ListTopicsResponse {
+  repeated Topic topics = 1;
+}
+
+// Topic message
+message Topic {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  int64 created_at = 4;
+  int64 updated_at = 5;
+}
+
