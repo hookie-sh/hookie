@@ -3,13 +3,14 @@
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { Button } from "@hookie/ui/components/button";
 import Link from "next/link";
+import { LogoWordmark } from "./logo-wordmark";
 
 export function PublicHeader() {
   return (
     <header className="border-b border-border sticky top-0 z-50 w-full bg-background">
-      <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-        <Link href="/">
-          <h1 className="text-2xl font-bold">Hookie</h1>
+      <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+        <Link href="/" className="mr-3">
+          <LogoWordmark className="h-7 text-foreground" />
         </Link>
         <div className="flex gap-4">
           <SignedOut>
@@ -31,5 +32,3 @@ export function PublicHeader() {
     </header>
   );
 }
-
-
