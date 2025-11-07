@@ -25,7 +25,7 @@ primary_region = 'sjc'
   
   [[services.ports]]
     port = 443
-    handlers = ["tls", "http"]
+    handlers = ["tls"]
     force_https = true
   
   [[services.tcp_checks]]
