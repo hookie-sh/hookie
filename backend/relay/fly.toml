@@ -26,7 +26,6 @@ primary_region = 'sjc'
   [[services.ports]]
     port = 443
     handlers = ["tls"]
-    force_https = true
   
   [[services.tcp_checks]]
     interval = "15s"
