@@ -69,7 +69,7 @@ var loginCmd = &cobra.Command{
 		fmt.Printf("Opening browser to complete authentication...\n\n")
 
 		// Start the callback server in a goroutine
-		signInTokenChan := make(chan string, 1)
+		tokenChan := make(chan string, 1)
 		errorChan := make(chan error, 1)
 
 		go func() {
@@ -77,7 +77,7 @@ var loginCmd = &cobra.Command{
 			if err != nil {
 				errorChan <- err
 			} else {
-				signInTokenChan <- token
+				tokenChan <- token
 			}
 		}()
 
@@ -104,33 +104,27 @@ var loginCmd = &cobra.Command{
 			fmt.Println("Opening browser...")
 		}
 
-		// Step 5: Wait for sign-in token callback
-		var signInToken string
+		// Step 5: Wait for token callback
+		var token string
 		select {
-		case signInToken = <-signInTokenChan:
+		case token = <-tokenChan:
 			// Successfully received token
 		case err := <-errorChan:
-			return fmt.Errorf("failed to receive sign-in token: %w", err)
+			return fmt.Errorf("failed to receive token: %w", err)
 		case <-time.After(5 * time.Minute):
 			return fmt.Errorf("authorization timeout")
 		}
 
-		// Step 6: Complete sign-in using the sign-in token
-		fmt.Println("Completing sign-in...")
-		sessionToken, err := auth.CompleteSignInWithTicket(ctx, signInToken)
+		// Step 6: Verify token and extract user ID
+		fmt.Println("Verifying token...")
+		userID, err := auth.VerifyToken(ctx, token)
 		if err != nil {
-			return fmt.Errorf("failed to complete sign-in: %w", err)
+			return fmt.Errorf("failed to verify token: %w", err)
 		}
 
-		// Step 7: Verify session token and extract user ID
-		userID, err := auth.VerifyToken(ctx, sessionToken)
-		if err != nil {
-			return fmt.Errorf("failed to verify session token: %w", err)
-		}
-
-		// Step 8: Save session token to config
+		// Step 7: Save token to config
 		cfg := &config.Config{
-			Token:  sessionToken,
+			Token:  token,
 			UserID: userID,
 		}
 

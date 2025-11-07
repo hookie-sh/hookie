@@ -476,11 +476,6 @@ func CompleteSignInWithTicket(ctx context.Context, signInToken string) (string, 
 		return "", fmt.Errorf("failed to parse response: %w", err)
 	}
 
-	// Log the parsed response for debugging
-	responseJSON, _ := json.MarshalIndent(signInResponse, "", "  ")
-	fmt.Printf("Parsed sign-in response: %s\n", string(responseJSON))
-	fmt.Printf("Raw response body: %s\n", string(body))
-
 	// Check the status - for ticket strategy, it should be "complete"
 	if signInResponse.Response.Status != "complete" {
 		return "", fmt.Errorf("sign-in not complete: status=%s (expected 'complete')", signInResponse.Response.Status)

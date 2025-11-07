@@ -1,10 +1,9 @@
-import { createClerkClient } from "@clerk/backend";
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId, getToken } = await auth();
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -41,27 +40,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate sign-in token using Clerk backend SDK
-    const clerkClient = createClerkClient({
-      secretKey: process.env.CLERK_SECRET_KEY!,
-    });
+    // Generate token using CLI template (7-day expiration)
+    const token = await getToken({ template: "CLI" });
 
-    const signInTokenResponse =
-      await clerkClient.signInTokens.createSignInToken({
-        userId,
-        expiresInSeconds: 60, // Token expires in 60 seconds (short-lived for security)
-      });
-
-    if (!signInTokenResponse || !signInTokenResponse.token) {
+    if (!token) {
       return NextResponse.json(
-        { error: "Failed to create sign-in token" },
+        { error: "Failed to create token" },
         { status: 500 }
       );
     }
 
     // Return the token to the frontend so it can redirect
     return NextResponse.json({
-      token: signInTokenResponse.token,
+      token: token,
       redirect_url: redirect_url,
     });
   } catch (error) {
