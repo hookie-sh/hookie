@@ -65,6 +65,8 @@ type TokenInfo struct {
 
 // VerifyToken verifies a Clerk JWT session token using networkless verification
 // as recommended by Clerk: https://clerk.com/docs/guides/sessions/session-tokens
+// This function works with both session tokens and sign-in tokens that have been
+// exchanged for session tokens via Clerk's sign-in API
 func (v *Verifier) VerifyToken(ctx context.Context, token string) (*TokenInfo, error) {
 	// Extract token from "Bearer <token>" format if present
 	token = strings.TrimPrefix(token, "Bearer ")
