@@ -12,7 +12,13 @@ import (
 	"github.com/hookie/ingest/internal/handlers"
 	"github.com/hookie/ingest/internal/middleware"
 	"github.com/hookie/ingest/internal/redis"
+	"github.com/joho/godotenv"
 )
+
+func init() {
+	// Load .env file if it exists (ignore errors)
+	_ = godotenv.Load()
+}
 
 func main() {
 	redisAddr := os.Getenv("REDIS_ADDR")
