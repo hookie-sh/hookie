@@ -3,7 +3,10 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
+	"net"
+	"net/url"
+	"strings"
+	"time"
 
 	"github.com/hookie/cli/internal/auth"
 	"github.com/hookie/cli/internal/config"
@@ -17,60 +20,125 @@ var loginCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
 
-		// Get OAuth configuration (compiled into binary, with optional env override)
-		oauthConfig := auth.GetOAuthConfig()
-
-		// Validate configuration
-		if oauthConfig.ClientID == "" {
-			return fmt.Errorf("OAuth client ID not configured. Please set CLERK_OAUTH_CLIENT_ID in oauth_config.go and rebuild")
-		}
-		if oauthConfig.AuthorizeURL == "" {
-			return fmt.Errorf("OAuth authorize URL not configured. Please set CLERK_OAUTH_AUTHORIZE_URL in oauth_config.go and rebuild")
-		}
-		if oauthConfig.TokenURL == "" {
-			return fmt.Errorf("OAuth token URL not configured. Please set CLERK_OAUTH_TOKEN_URL in oauth_config.go and rebuild")
-		}
-
 		// Get publishable key (compiled into binary, with optional env override)
 		publishableKey := auth.GetPublishableKey()
 		if publishableKey == "" {
 			return fmt.Errorf("clerk publishable key not configured. please set publishablekey in oauth_config.go and rebuild")
 		}
 
-		// Check for discovery URL override (for dynamic endpoint discovery)
-		if discoveryURL := os.Getenv("CLERK_OAUTH_DISCOVERY_URL"); discoveryURL != "" {
-			authorizeURL, tokenURL, userInfoURL, err := auth.FetchOAuthEndpoints(discoveryURL)
-			if err != nil {
-				return fmt.Errorf("failed to fetch OAuth endpoints from discovery URL: %w", err)
+		// Get web app URL
+		webAppURL := auth.GetWebAppURL()
+		if webAppURL == "" {
+			return fmt.Errorf("web app URL not configured. please set WebAppURL in oauth_config.go and rebuild")
+		}
+
+		// Step 1: Find an available port for the callback server
+		preferredPorts := []int{48443, 48444, 48445, 48446, 48447}
+		var port int
+		var listener net.Listener
+
+		// Try preferred ports first, then fall back to any available port
+		for _, p := range preferredPorts {
+			l, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", p))
+			if err == nil {
+				port = p
+				listener = l
+				break
 			}
-			oauthConfig.AuthorizeURL = authorizeURL
-			oauthConfig.TokenURL = tokenURL
-			oauthConfig.UserInfoURL = userInfoURL
 		}
 
-		fmt.Println("Starting authorization code flow with PKCE...")
-		accessToken, idToken, userID, err := auth.StartLoginFlow(ctx, oauthConfig)
+		// If all preferred ports are busy, find any available port
+		if listener == nil {
+			l, err := net.Listen("tcp", "127.0.0.1:0")
+			if err != nil {
+				return fmt.Errorf("failed to find available port: %w", err)
+			}
+			port = l.Addr().(*net.TCPAddr).Port
+			listener = l
+		}
+		listener.Close() // Close immediately, we'll create a new server later
+
+		// Step 2: Build redirect URL
+		redirectURL := fmt.Sprintf("http://localhost:%d/callback", port)
+
+		// Step 3: Start local server to receive token
+		fmt.Println("\n" + strings.Repeat("=", 60))
+		fmt.Println("Authorization required")
+		fmt.Println(strings.Repeat("=", 60))
+		fmt.Printf("\nStarting local server on port %d...\n", port)
+		fmt.Printf("Opening browser to complete authentication...\n\n")
+
+		// Start the callback server in a goroutine
+		signInTokenChan := make(chan string, 1)
+		errorChan := make(chan error, 1)
+
+		go func() {
+			token, err := auth.ReceiveSignInToken(ctx, port)
+			if err != nil {
+				errorChan <- err
+			} else {
+				signInTokenChan <- token
+			}
+		}()
+
+		// Give server a brief moment to start listening
+		time.Sleep(200 * time.Millisecond)
+
+		// Step 4: Build authorization URL and open browser
+		authURL, err := url.Parse(webAppURL)
 		if err != nil {
-			return fmt.Errorf("authentication failed: %w", err)
+			return fmt.Errorf("invalid web app URL: %w", err)
+		}
+		authURL.Path = "/cli"
+		authURL.RawQuery = url.Values{
+			"redirect_url": []string{redirectURL},
+		}.Encode()
+
+		authorizationURL := authURL.String()
+
+		// Open browser automatically
+		if err := auth.OpenBrowser(authorizationURL); err != nil {
+			fmt.Printf("Warning: Failed to open browser automatically: %v\n", err)
+			fmt.Printf("Please visit the URL manually: %s\n", authorizationURL)
+		} else {
+			fmt.Println("Opening browser...")
 		}
 
-		// Exchange access token for a session token (JWT)
-		// Prefers ID token if available, otherwise validates access token is a JWT
-		sessionToken, err := auth.ExchangeAccessTokenForSessionToken(ctx, accessToken, idToken)
+		// Step 5: Wait for sign-in token callback
+		var signInToken string
+		select {
+		case signInToken = <-signInTokenChan:
+			// Successfully received token
+		case err := <-errorChan:
+			return fmt.Errorf("failed to receive sign-in token: %w", err)
+		case <-time.After(5 * time.Minute):
+			return fmt.Errorf("authorization timeout")
+		}
+
+		// Step 6: Complete sign-in using the sign-in token
+		fmt.Println("Completing sign-in...")
+		sessionToken, err := auth.CompleteSignInWithTicket(ctx, signInToken)
 		if err != nil {
-			return fmt.Errorf("failed to get session token: %w", err)
+			return fmt.Errorf("failed to complete sign-in: %w", err)
 		}
 
-		// Save session token to config
+		// Step 7: Verify session token and extract user ID
+		userID, err := auth.VerifyToken(ctx, sessionToken)
+		if err != nil {
+			return fmt.Errorf("failed to verify session token: %w", err)
+		}
+
+		// Step 8: Save session token to config
 		cfg := &config.Config{
-			Token:    sessionToken,
-			UserID:   userID,
+			Token:  sessionToken,
+			UserID: userID,
 		}
 
 		if err := config.Save(cfg); err != nil {
 			return fmt.Errorf("failed to save config: %w", err)
 		}
 
+		fmt.Println("✓ Authentication successful!")
 		fmt.Printf("✓ Successfully authenticated as user %s\n", userID)
 		return nil
 	},

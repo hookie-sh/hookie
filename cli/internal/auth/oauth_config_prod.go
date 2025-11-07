@@ -3,18 +3,13 @@
 
 package auth
 
-// OAuthAppConfig contains the OAuth application configuration for PRODUCTION
-// This file is compiled by default (when not using -tags dev)
-// Update these values for your production Clerk instance
-var OAuthAppConfig = OAuthConfig{
-	ClientID:     "mUFZjFsoJS4L8S56", // Set your production OAuth client ID here
-	AuthorizeURL: "https://smooth-glider-93.clerk.accounts.dev/oauth/authorize", // Set your production authorization URL here
-	TokenURL:     "https://smooth-glider-93.clerk.accounts.dev/oauth/token", // Set your production token URL here
-	UserInfoURL:  "https://smooth-glider-93.clerk.accounts.dev/oauth/userinfo", // Set your production userinfo URL here
-	RedirectURI:  "", // Empty = use dynamic port discovery
-}
+// OAuthAppConfig removed - no longer needed with sign-in token flow
 
 // PublishableKey is the Clerk publishable key for PRODUCTION
 // Set this to your production publishable key (pk_live_...)
 var PublishableKey = "pk_test_c21vb3RoLWdsaWRlci05My5jbGVyay5hY2NvdW50cy5kZXYk" // Set your production publishable key here
+
+// WebAppURL is the web application URL for PRODUCTION
+// Set this to your production web app URL (e.g., https://your-domain.com)
+var WebAppURL = "http://localhost:3000" // Set your production web app URL here
 
