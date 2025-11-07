@@ -2,7 +2,10 @@ package auth
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/clerk/clerk-sdk-go/v2"
@@ -17,6 +20,32 @@ type Verifier struct {
 func NewVerifier(secretKey string) (*Verifier, error) {
 	// Set the API key globally using resource-based approach
 	clerk.SetKey(secretKey)
+
+	// Configure TLS to use system certificates
+	// This is important for containerized environments like Fly.io
+	systemCerts, err := x509.SystemCertPool()
+	if err != nil {
+		// Fallback: create new pool (will be empty but won't crash)
+		systemCerts = x509.NewCertPool()
+	}
+
+	// Configure default HTTP transport to use system certificates
+	// The Clerk SDK uses this for JWKS requests
+	if transport, ok := http.DefaultTransport.(*http.Transport); ok {
+		if transport.TLSClientConfig == nil {
+			transport.TLSClientConfig = &tls.Config{
+				RootCAs: systemCerts,
+			}
+		} else {
+			transport.TLSClientConfig.RootCAs = systemCerts
+		}
+	} else {
+		http.DefaultTransport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: systemCerts,
+			},
+		}
+	}
 
 	// Create JWKS client for networkless JWT verification
 	config := &clerk.ClientConfig{}

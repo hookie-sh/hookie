@@ -19,10 +19,57 @@ import (
 	"strings"
 	"time"
 
+	"crypto/tls"
+	"crypto/x509"
+
 	"github.com/clerk/clerk-sdk-go/v2"
 	"github.com/clerk/clerk-sdk-go/v2/jwks"
 	"github.com/clerk/clerk-sdk-go/v2/jwt"
 )
+
+// init initializes TLS configuration to use system certificates
+// This ensures the Clerk SDK's HTTP client can verify TLS certificates
+func init() {
+	// Load system certificate pool
+	systemCerts, err := x509.SystemCertPool()
+	if err != nil {
+		// Fallback: try to create a new pool and add common macOS cert locations
+		systemCerts = x509.NewCertPool()
+		
+		// On macOS, try to load certificates from common locations
+		if runtime.GOOS == "darwin" {
+			// Try common macOS certificate locations
+			certPaths := []string{
+				"/etc/ssl/cert.pem",
+				"/usr/local/etc/openssl/cert.pem",
+			}
+			for _, path := range certPaths {
+				if certs, err := os.ReadFile(path); err == nil {
+					systemCerts.AppendCertsFromPEM(certs)
+				}
+			}
+		}
+	}
+
+	// Configure default HTTP transport with system certificates
+	// This should be picked up by the Clerk SDK's HTTP client
+	if transport, ok := http.DefaultTransport.(*http.Transport); ok {
+		if transport.TLSClientConfig == nil {
+			transport.TLSClientConfig = &tls.Config{
+				RootCAs: systemCerts,
+			}
+		} else {
+			transport.TLSClientConfig.RootCAs = systemCerts
+		}
+	} else {
+		// If DefaultTransport is not a *http.Transport, replace it
+		http.DefaultTransport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: systemCerts,
+			},
+		}
+	}
+}
 
 // DeviceAuthorizationResponse represents the response from the device authorization endpoint
 type DeviceAuthorizationResponse struct {
@@ -853,12 +900,15 @@ func verifyTokenJWT(ctx context.Context, token, publishableKey string) (string, 
 		return "", fmt.Errorf("failed to decode token: %w", err)
 	}
 
-	// Step 2: Create JWKS client using publishable key
-	// The publishable key is used to determine the Clerk instance
-	// For JWKS, we can use an empty config or extract instance from token
+	// Step 2: Create JWKS client with publishable key configured
+	// The SDK needs the key to determine the correct endpoint
 	config := &clerk.ClientConfig{}
-	// Note: JWKS client doesn't strictly need a secret key for public key fetching
-	// We'll let it use default behavior or extract instance from JWT issuer
+	if publishableKey != "" {
+		// Set the publishable key so SDK can determine the correct Clerk instance
+		// Note: SDK might use this to construct the JWKS URL
+		config.Key = clerk.String(publishableKey)
+	}
+	
 	jwksClient := jwks.NewClient(config)
 
 	// Step 3: Fetch the JSON Web Key (JWK) corresponding to the Key ID

@@ -16,5 +16,5 @@ var OAuthAppConfig = OAuthConfig{
 
 // PublishableKey is the Clerk publishable key for PRODUCTION
 // Set this to your production publishable key (pk_live_...)
-var PublishableKey = "" // Set your production publishable key here
+var PublishableKey = "pk_test_c21vb3RoLWdsaWRlci05My5jbGVyay5hY2NvdW50cy5kZXYk" // Set your production publishable key here
 
