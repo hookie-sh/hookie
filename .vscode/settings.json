@@ -3,5 +3,6 @@
     {
       "mode": "auto"
     }
-  ]
+  ],
+  "makefile.configureOnOpen": false
 }

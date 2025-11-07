@@ -3,10 +3,13 @@ package relay
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
+	"strings"
 
 	"github.com/hookie/cli/proto"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 )
@@ -25,7 +28,17 @@ func NewClient(relayURL, token string) (*Client, error) {
 		}
 	}
 
-	conn, err := grpc.NewClient(relayURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	// Determine transport credentials based on URL
+	var creds credentials.TransportCredentials
+	if isLocalhost(relayURL) && os.Getenv("HOOKIE_INSECURE_TLS") == "" {
+		// Use insecure credentials for localhost (dev convenience)
+		creds = insecure.NewCredentials()
+	} else {
+		// Use TLS for remote connections (production)
+		creds = credentials.NewTLS(nil) // nil means use system root CAs
+	}
+
+	conn, err := grpc.NewClient(relayURL, grpc.WithTransportCredentials(creds))
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to relay: %w", err)
 	}
@@ -35,6 +48,24 @@ func NewClient(relayURL, token string) (*Client, error) {
 		client: proto.NewRelayServiceClient(conn),
 		token:  token,
 	}, nil
+}
+
+// isLocalhost checks if the URL is pointing to localhost or 127.0.0.1
+func isLocalhost(url string) bool {
+	// Remove scheme if present
+	host := strings.TrimPrefix(url, "grpc://")
+	host = strings.TrimPrefix(host, "grpcs://")
+	host = strings.TrimPrefix(host, "http://")
+	host = strings.TrimPrefix(host, "https://")
+	
+	// Extract host:port and check host
+	host, _, err := net.SplitHostPort(host)
+	if err != nil {
+		// No port, use entire string as host
+		host = url
+	}
+	
+	return host == "localhost" || host == "127.0.0.1" || host == "::1" || host == ""
 }
 
 func (c *Client) Close() error {
