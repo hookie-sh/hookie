@@ -9,8 +9,8 @@ import (
 
 var logoutCmd = &cobra.Command{
 	Use:   "logout",
-	Short: "Clear stored authentication",
-	Long:  `Clear the stored authentication token.`,
+	Short: "Logout from Hookie",
+	Long:  `Logout from Hookie by clearing the stored authentication token.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := config.Clear(); err != nil {
 			return fmt.Errorf("failed to clear config: %w", err)

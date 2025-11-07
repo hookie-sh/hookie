@@ -15,8 +15,8 @@ import (
 
 var loginCmd = &cobra.Command{
 	Use:   "login",
-	Short: "Authenticate with Clerk",
-	Long:  `Authenticate with Clerk by opening a browser and completing the login flow.`,
+	Short: "Authenticate with Hookie",
+	Long:  `Authenticate with Hookie by opening a browser and completing the login flow.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
 
