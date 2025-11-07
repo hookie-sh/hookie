@@ -69,17 +69,17 @@ func (v *Verifier) VerifyToken(ctx context.Context, token string) (*TokenInfo, e
 	// Extract token from "Bearer <token>" format if present
 	token = strings.TrimPrefix(token, "Bearer ")
 	token = strings.TrimSpace(token)
-	
+
 	// Validate token format before attempting to decode
 	if token == "" {
 		return nil, fmt.Errorf("token is empty")
 	}
-	
+
 	parts := strings.Split(token, ".")
 	if len(parts) != 3 {
 		return nil, fmt.Errorf("invalid token format: expected JWT with 3 parts separated by dots, got %d parts (token length: %d). This usually means the token is not a valid JWT or was corrupted during storage", len(parts), len(token))
 	}
-	
+
 	// Check that each part is non-empty
 	for i, part := range parts {
 		if part == "" {
@@ -129,5 +129,3 @@ func (v *Verifier) VerifyToken(ctx context.Context, token string) (*TokenInfo, e
 
 	return info, nil
 }
-
-

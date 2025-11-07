@@ -67,4 +67,3 @@ func (c *Client) PublishWebhook(ctx context.Context, streamKey string, fields ma
 func (c *Client) Close() error {
 	return c.client.Close()
 }
-

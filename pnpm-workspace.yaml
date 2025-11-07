@@ -6,4 +6,6 @@ packages:
   - scripts
 
 onlyBuiltDependencies:
-  - "@clerk/shared"
+  - '@clerk/shared'
+  - sharp
+  - supabase

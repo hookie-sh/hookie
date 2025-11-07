@@ -72,17 +72,17 @@ func (h *WebhookHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 
 	fields := map[string]interface{}{
 		"method":         r.Method,
-		"url":             r.URL.String(),
-		"path":            r.URL.Path,
-		"query":           string(queryJSON),
-		"headers":         string(headersJSON),
-		"body":            base64.StdEncoding.EncodeToString(body),
-		"content_type":    contentType,
+		"url":            r.URL.String(),
+		"path":           r.URL.Path,
+		"query":          string(queryJSON),
+		"headers":        string(headersJSON),
+		"body":           base64.StdEncoding.EncodeToString(body),
+		"content_type":   contentType,
 		"content_length": contentLength,
-		"remote_addr":     remoteAddr,
-		"timestamp":       time.Now().UnixNano(),
-		"app_id":          appId,
-		"topic_id":        topicId,
+		"remote_addr":    remoteAddr,
+		"timestamp":      time.Now().UnixNano(),
+		"app_id":         appId,
+		"topic_id":       topicId,
 	}
 
 	if err := h.redisClient.PublishWebhook(r.Context(), streamKey, fields); err != nil {
@@ -101,4 +101,3 @@ func (h *WebhookHandler) respondError(w http.ResponseWriter, statusCode int, mes
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"error": message})
 }
-

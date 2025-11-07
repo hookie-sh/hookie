@@ -4,5 +4,8 @@
       "mode": "auto"
     }
   ],
-  "makefile.configureOnOpen": false
+  "makefile.configureOnOpen": false,
+  "files.associations": {
+    ".air.toml": "plaintext"
+  }
 }

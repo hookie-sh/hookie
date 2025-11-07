@@ -15,4 +15,3 @@ var OAuthAppConfig = OAuthConfig{
 
 // PublishableKey is the Clerk publishable key for DEVELOPMENT
 var PublishableKey = "pk_test_c21vb3RoLWdsaWRlci05My5jbGVyay5hY2NvdW50cy5kZXYk"
-
