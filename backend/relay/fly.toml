@@ -27,6 +27,9 @@ primary_region = 'sjc'
     port = 443
     handlers = ["tls"]
   
+  [services.ports.tls_options]
+    alpn = ["h2"]
+  
   [[services.tcp_checks]]
     interval = "15s"
     timeout = "2s"
