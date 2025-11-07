@@ -34,7 +34,7 @@ var loginCmd = &cobra.Command{
 		// Get publishable key (compiled into binary, with optional env override)
 		publishableKey := auth.GetPublishableKey()
 		if publishableKey == "" {
-			return fmt.Errorf("Clerk publishable key not configured. Please set PublishableKey in oauth_config.go and rebuild")
+			return fmt.Errorf("clerk publishable key not configured. please set publishablekey in oauth_config.go and rebuild")
 		}
 
 		// Check for discovery URL override (for dynamic endpoint discovery)
@@ -61,24 +61,10 @@ var loginCmd = &cobra.Command{
 			return fmt.Errorf("failed to get session token: %w", err)
 		}
 
-		// Determine RelayURL priority: flag > existing config > build-tag default
-		relayURLToSave := relayURL
-		if relayURLToSave == "" {
-			// Try to load existing config to preserve RelayURL
-			existingCfg, err := config.Load()
-			if err == nil && existingCfg.RelayURL != "" {
-				relayURLToSave = existingCfg.RelayURL
-			}
-		}
-		if relayURLToSave == "" {
-			relayURLToSave = auth.GetRelayURL()
-		}
-
 		// Save session token to config
 		cfg := &config.Config{
 			Token:    sessionToken,
 			UserID:   userID,
-			RelayURL: relayURLToSave,
 		}
 
 		if err := config.Save(cfg); err != nil {

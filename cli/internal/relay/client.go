@@ -3,6 +3,7 @@ package relay
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"strings"
@@ -20,13 +21,19 @@ type Client struct {
 	token  string
 }
 
-func NewClient(relayURL, token string) (*Client, error) {
+func NewClient(token string) (*Client, error) {
+	relayURL := os.Getenv("HOOKIE_RELAY_URL")
 	if relayURL == "" {
-		relayURL = os.Getenv("HOOKIE_RELAY_URL")
-		if relayURL == "" {
-			relayURL = "localhost:50051"
-		}
+		relayURL = GetRelayURL()
 	}
+	log.Println("relayURL from env", relayURL)
+	// if relayURL == "" {
+	// 	relayURL = os.Getenv("HOOKIE_RELAY_URL")
+	// 	log.Println("relayURL from env", relayURL)
+	// 	if relayURL == "" {
+	// 		relayURL = "localhost:50051"
+	// 	}
+	// }
 
 	// Determine transport credentials based on URL
 	var creds credentials.TransportCredentials

@@ -1,10 +1,10 @@
 //go:build !dev
 // +build !dev
 
-package auth
+package relay
 
 // RelayURL is the default relay service URL for PRODUCTION
 // This file is compiled by default (when not using -tags dev)
 // Update this value to your production relay URL
-var RelayURL = "" // Set your production relay URL here (e.g., "relay.yourdomain.com:50051")
+var RelayURL = "hookie-relay.fly.dev:443" // Use port 443 for TLS termination
 

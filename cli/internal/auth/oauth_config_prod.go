@@ -7,10 +7,10 @@ package auth
 // This file is compiled by default (when not using -tags dev)
 // Update these values for your production Clerk instance
 var OAuthAppConfig = OAuthConfig{
-	ClientID:     "", // Set your production OAuth client ID here
-	AuthorizeURL: "", // Set your production authorization URL here
-	TokenURL:     "", // Set your production token URL here
-	UserInfoURL:  "", // Set your production userinfo URL here
+	ClientID:     "mUFZjFsoJS4L8S56", // Set your production OAuth client ID here
+	AuthorizeURL: "https://smooth-glider-93.clerk.accounts.dev/oauth/authorize", // Set your production authorization URL here
+	TokenURL:     "https://smooth-glider-93.clerk.accounts.dev/oauth/token", // Set your production token URL here
+	UserInfoURL:  "https://smooth-glider-93.clerk.accounts.dev/oauth/userinfo", // Set your production userinfo URL here
 	RedirectURI:  "", // Empty = use dynamic port discovery
 }
 

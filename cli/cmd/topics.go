@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/fatih/color"
-	"github.com/hookie/cli/internal/auth"
 	"github.com/hookie/cli/internal/config"
 	"github.com/hookie/cli/internal/relay"
 	"github.com/olekukonko/tablewriter"
@@ -30,12 +29,7 @@ var topicsCmd = &cobra.Command{
 			return fmt.Errorf("not authenticated. Run 'hookie login' first")
 		}
 
-		relayURL := cfg.RelayURL
-		if relayURL == "" {
-			relayURL = auth.GetRelayURL()
-		}
-
-		client, err := relay.NewClient(relayURL, cfg.Token)
+		client, err := relay.NewClient(cfg.Token)
 		if err != nil {
 			return fmt.Errorf("failed to connect to relay: %w", err)
 		}

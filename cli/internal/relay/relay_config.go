@@ -1,4 +1,4 @@
-package auth
+package relay
 
 // RelayURL is declared in:
 // - relay_config_dev.go (compiled with -tags dev) for development
