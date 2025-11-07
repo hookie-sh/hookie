@@ -1,0 +1,20 @@
+# fly.toml app configuration file generated for hookie on 2025-11-07T04:35:51Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'hookie'
+primary_region = 'sjc'
+
+[build]
+  [build.args]
+    GO_VERSION = '1.22'
+
+[env]
+  PORT = '8080'
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 1024
