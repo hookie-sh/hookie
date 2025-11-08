@@ -10,6 +10,7 @@ import {
 import { Badge } from '@hookie/ui/components/badge'
 import { Check } from 'lucide-react'
 import { Button } from '@hookie/ui/components/button'
+import { createCheckoutSessionAction } from '../_actions/createCheckoutSession'
 
 export async function Plans() {
   const stripeProducts = await getStripeProducts()
@@ -65,12 +66,20 @@ export async function Plans() {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button
-                className="w-full"
-                variant={plan.cta.variant || 'default'}
-              >
-                {plan.cta.label}
-              </Button>
+              <form action={createCheckoutSessionAction} method="POST">
+                <input
+                  type="hidden"
+                  name="priceId"
+                  value={plan.stripePriceId || ''}
+                />
+                <Button
+                  type="submit"
+                  className="w-full"
+                  variant={plan.cta.variant || 'default'}
+                >
+                  {plan.cta.label}
+                </Button>
+              </form>
             </CardFooter>
           </Card>
         ))}
