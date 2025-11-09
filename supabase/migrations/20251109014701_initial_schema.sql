@@ -1,3 +1,49 @@
+  CREATE OR REPLACE FUNCTION public.ksuid(prefix text DEFAULT NULL::text)
+  RETURNS text
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path TO ''
+  AS $function$
+  DECLARE
+    chars TEXT[] := ARRAY['0','1','2','3','4','5','6','7','8','9',
+                          'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
+                          'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'];
+    timestamp_ms BIGINT;
+    timestamp_b62 TEXT := '';
+    random_bytes BYTEA;
+    random_b62 TEXT := '';
+    temp_val BIGINT;
+    char_index INT;
+    i INT;
+    base_id TEXT;
+  BEGIN
+    timestamp_ms := FLOOR(EXTRACT(EPOCH FROM clock_timestamp()) * 1000);
+
+    -- Generate 7-character timestamp part
+    temp_val := timestamp_ms;
+    WHILE temp_val > 0 LOOP
+      char_index := (temp_val % 62) + 1;
+      timestamp_b62 := chars[char_index] || timestamp_b62;
+      temp_val := temp_val / 62;
+    END LOOP;
+
+    -- Generate 10-character random part using pgcrypto
+    random_bytes := extensions.gen_random_bytes(10);
+    FOR i IN 0..9 LOOP
+      char_index := (get_byte(random_bytes, i) % 62) + 1;
+      random_b62 := random_b62 || chars[char_index];
+    END LOOP;
+
+    base_id := timestamp_b62 || random_b62;
+
+    IF prefix IS NOT NULL AND prefix != '' THEN
+      RETURN prefix || '_' || base_id;
+    ELSE
+      RETURN base_id;
+    END IF;
+  END;
+  $function$
+  ;
 
   create table "public"."applications" (
     "id" text not null default public.ksuid('app'::text),
@@ -78,53 +124,6 @@ alter table "public"."users" add constraint "users_email_key" UNIQUE using index
 
 set check_function_bodies = off;
 
-CREATE OR REPLACE FUNCTION public.ksuid(prefix text DEFAULT NULL::text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO ''
-AS $function$
-DECLARE
-  chars TEXT[] := ARRAY['0','1','2','3','4','5','6','7','8','9',
-                        'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
-                        'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'];
-  timestamp_ms BIGINT;
-  timestamp_b62 TEXT := '';
-  random_bytes BYTEA;
-  random_b62 TEXT := '';
-  temp_val BIGINT;
-  char_index INT;
-  i INT;
-  base_id TEXT;
-BEGIN
-  timestamp_ms := FLOOR(EXTRACT(EPOCH FROM clock_timestamp()) * 1000);
-  
-  -- Generate 7-character timestamp part
-  temp_val := timestamp_ms;
-  WHILE temp_val > 0 LOOP
-    char_index := (temp_val % 62) + 1;
-    timestamp_b62 := chars[char_index] || timestamp_b62;
-    temp_val := temp_val / 62;
-  END LOOP;
-  
-  -- Generate 10-character random part using pgcrypto
-  random_bytes := extensions.gen_random_bytes(10);
-  FOR i IN 0..9 LOOP
-    char_index := (get_byte(random_bytes, i) % 62) + 1;
-    random_b62 := random_b62 || chars[char_index];
-  END LOOP;
-  
-  base_id := timestamp_b62 || random_b62;
-  
-  IF prefix IS NOT NULL AND prefix != '' THEN
-    RETURN prefix || '_' || base_id;
-  ELSE
-    RETURN base_id;
-  END IF;
-END;
-$function$
-;
-
 CREATE OR REPLACE FUNCTION public.org_id()
  RETURNS text
  LANGUAGE sql
@@ -158,7 +157,7 @@ DECLARE
 BEGIN
   -- Get the column name from TG_ARGV, default to 'updated_at' if not provided
   touch_column := COALESCE(TG_ARGV[0], 'updated_at');
-  
+
   -- Handle the column update using a CASE statement for common columns
   -- This approach is more reliable than dynamic assignment
   IF touch_column = 'updated_at' THEN
@@ -173,7 +172,7 @@ BEGIN
     -- So we'll raise an error for unsupported columns
     RAISE EXCEPTION 'Column % is not supported by touch function. Supported columns: updated_at, created_at, last_active_at', touch_column;
   END IF;
-  
+
   RETURN NEW;
 END;
 $function$

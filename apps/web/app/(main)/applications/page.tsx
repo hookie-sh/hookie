@@ -1,11 +1,11 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
-import useSWR, { mutate } from "swr";
-import { Button } from "@hookie/ui/components/button";
+import { useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@clerk/nextjs'
+import useSWR, { mutate } from 'swr'
+import { Button } from '@hookie/ui/components/button'
 import {
   Dialog,
   DialogContent,
@@ -14,40 +14,39 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@hookie/ui/components/dialog";
-import { Input } from "@hookie/ui/components/input";
-import { Label } from "@hookie/ui/components/label";
-import { ApplicationCard } from "@/components/application-card";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { createApplicationSchema, type CreateApplicationInput } from "@/data/apps/validation";
-import { fetcher } from "@/utils/api";
+} from '@hookie/ui/components/dialog'
+import { Input } from '@hookie/ui/components/input'
+import { Label } from '@hookie/ui/components/label'
+import { ApplicationCard } from '@/features/applications/components/card'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import {
+  createApplicationSchema,
+  type CreateApplicationInput,
+} from '@/data/apps/validation'
+import { fetcher } from '@/utils/api'
 
 interface Application {
-  id: string;
-  name: string;
-  description?: string;
-  topicCount: number;
+  id: string
+  name: string
+  description?: string
+  topicCount: number
 }
 
 export default function ApplicationsPage() {
-  const { userId } = useAuth();
-  const router = useRouter();
-  const [isOpen, setIsOpen] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const { userId } = useAuth()
+  const router = useRouter()
+  const [isOpen, setIsOpen] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const {
     data: applications,
     error,
     isLoading,
-  } = useSWR<Application[]>(
-    userId ? "/api/applications" : null,
-    fetcher,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-    }
-  );
+  } = useSWR<Application[]>(userId ? '/api/applications' : null, fetcher, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: true,
+  })
 
   const {
     control,
@@ -57,45 +56,53 @@ export default function ApplicationsPage() {
   } = useForm<CreateApplicationInput>({
     resolver: zodResolver(createApplicationSchema),
     defaultValues: {
-      name: "",
-      description: "",
+      name: '',
+      description: '',
     },
-  });
+  })
 
   const onSubmit = async (data: CreateApplicationInput) => {
     try {
-      setSubmitError(null);
-      const response = await fetch("/api/applications", {
-        method: "POST",
+      setSubmitError(null)
+      const response = await fetch('/api/applications', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
-      });
+      })
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to create application");
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create application')
       }
 
-      const newApp = await response.json();
-      
+      const newApp = await response.json()
+
+      console.log('[NEW APP]', newApp)
+
       // Optimistically update the cache, then revalidate
-      mutate("/api/applications", (current: Application[] | undefined) => {
-        return current ? [newApp, ...current] : [newApp];
-      }, false);
+      mutate(
+        '/api/applications',
+        (current: Application[] | undefined) => {
+          return current ? [newApp, ...current] : [newApp]
+        },
+        false
+      )
 
       // Revalidate to confirm with server
-      await mutate("/api/applications");
+      await mutate('/api/applications')
 
-      setIsOpen(false);
-      reset();
-      setSubmitError(null);
+      setIsOpen(false)
+      reset()
+      setSubmitError(null)
     } catch (err) {
-      console.error("Failed to create application:", err);
-      setSubmitError(err instanceof Error ? err.message : "Failed to create application");
+      console.error('Failed to create application:', err)
+      setSubmitError(
+        err instanceof Error ? err.message : 'Failed to create application'
+      )
     }
-  };
+  }
 
   return (
     <>
@@ -169,7 +176,7 @@ export default function ApplicationsPage() {
                     Cancel
                   </Button>
                   <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? "Creating..." : "Create"}
+                    {isSubmitting ? 'Creating...' : 'Create'}
                   </Button>
                 </DialogFooter>
               </form>
@@ -180,7 +187,10 @@ export default function ApplicationsPage() {
         {/* Error Messages */}
         {(error || submitError) && (
           <div className="mb-4 p-4 bg-destructive/10 text-destructive rounded-md">
-            {submitError || (error instanceof Error ? error.message : "Failed to load applications")}
+            {submitError ||
+              (error instanceof Error
+                ? error.message
+                : 'Failed to load applications')}
           </div>
         )}
 
@@ -197,17 +207,19 @@ export default function ApplicationsPage() {
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {applications.map((app) => (
-              <ApplicationCard
-                key={app.id}
-                {...app}
-                href={`/applications/${app.id}`}
-              />
-            ))}
+            {applications.map((application) => {
+              console.log(application)
+              return (
+                <ApplicationCard
+                  key={application.id}
+                  {...application}
+                  href={`/applications/${application.id}`}
+                />
+              )
+            })}
           </div>
         )}
       </main>
     </>
-  );
+  )
 }
-
