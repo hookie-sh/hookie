@@ -2,9 +2,15 @@
 
 import Stripe from 'stripe'
 
-const stripe = new Stripe(
-  (process.env.STRIPE_SECRET_KEY as string) ?? 'api_key_placeholder'
-)
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('STRIPE_SECRET_KEY is not set')
+}
+
+if (!process.env.NEXT_PUBLIC_APP_URL) {
+  throw new Error('NEXT_PUBLIC_APP_URL is not set')
+}
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
 export async function getStripeProducts() {
   const products = await stripe.products.list()
