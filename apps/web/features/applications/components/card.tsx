@@ -1,12 +1,18 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@hookie/ui/components/card";
-import { Badge } from "@hookie/ui/components/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@hookie/ui/components/card'
+import { Badge } from '@hookie/ui/components/badge'
 
 export interface ApplicationCardProps {
-  id: string;
-  name: string;
-  description?: string;
-  topicCount?: number;
-  href?: string;
+  id: string
+  name: string
+  description?: string
+  topicCount?: number
+  href?: string
 }
 
 export function ApplicationCard({
@@ -28,16 +34,15 @@ export function ApplicationCard({
         </div>
       </CardContent>
     </Card>
-  );
+  )
 
   if (href) {
     return (
       <a href={href} className="block">
         {CardContent_}
       </a>
-    );
+    )
   }
 
-  return CardContent_;
+  return CardContent_
 }
-
