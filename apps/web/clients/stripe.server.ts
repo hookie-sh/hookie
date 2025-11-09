@@ -2,7 +2,9 @@
 
 import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY! || 'placeholder')
+const stripe = new Stripe(
+  (process.env.STRIPE_SECRET_KEY as string) ?? 'api_key_placeholder'
+)
 
 export async function getStripeProducts() {
   const products = await stripe.products.list()
