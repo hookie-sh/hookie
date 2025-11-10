@@ -126,14 +126,16 @@ function matchProductName(stripeName: string, productName: string): boolean {
 export function enhanceStripeProducts(
   stripeProducts: Stripe.Product[]
 ): EnhancedProduct[] {
-  return stripeProducts.map((product) => {
-    // Find matching Stripe product
-    const stripeProduct = stripeProducts.find((product) =>
-      matchProductName(product.id, product.name)
+  const enhanced: EnhancedProduct[] = []
+
+  for (const stripeProduct of stripeProducts) {
+    // Find matching metadata by product name
+    const metadata = productsMetadata.find((meta) =>
+      matchProductName(stripeProduct.name, meta.name)
     )
 
-    if (!stripeProduct) {
-      return product
+    if (!metadata) {
+      continue
     }
 
     // Extract price ID - handle both string and Price object
@@ -142,10 +144,12 @@ export function enhanceStripeProducts(
         ? stripeProduct.default_price
         : stripeProduct.default_price?.id
 
-    return {
-      ...product,
+    enhanced.push({
+      ...metadata,
       stripeProductId: stripeProduct.id,
       stripePriceId: priceId,
-    }
-  })
+    })
+  }
+
+  return enhanced
 }

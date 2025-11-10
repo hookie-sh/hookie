@@ -23,7 +23,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import {
   createApplicationSchema,
   type CreateApplicationInput,
-} from '@/data/apps/validation'
+} from '@/features/applications/schemas/application'
 import { fetcher } from '@/utils/api'
 
 interface Application {

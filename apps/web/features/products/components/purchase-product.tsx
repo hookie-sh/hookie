@@ -7,7 +7,7 @@ import { Button } from '@hookie/ui/components/button'
 import {
   checkoutSessionSchema,
   type CheckoutSessionInput,
-} from '@/data/stripe/validation'
+} from '@/features/products/schemas/checkout-session'
 import type { EnhancedProduct } from '../types'
 
 export function PurchaseProduct({ product }: { product: EnhancedProduct }) {

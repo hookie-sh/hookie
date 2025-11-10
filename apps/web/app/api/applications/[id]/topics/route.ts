@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { supabase } from '@/clients/supabase.server'
-import { createTopicSchema } from '@/data/topics/validation'
+import { createTopicSchema } from '@/features/topics/schemas/topic'
+import {
+  getTopicsByApplicationId,
+  createTopicForApplication,
+} from '@/features/topics/db/server'
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -17,21 +20,9 @@ export async function GET(req: NextRequest, context: RouteContext) {
     }
 
     // RLS policies will automatically verify user has access to the application and its topics
-    const { data, error } = await supabase
-      .from('topics')
-      .select('id, name, description, created_at, updated_at')
-      .eq('application_id', applicationId)
-      .order('created_at', { ascending: false })
+    const topics = await getTopicsByApplicationId(applicationId)
 
-    if (error) {
-      console.error('Error fetching topics:', error)
-      return NextResponse.json(
-        { error: 'Failed to fetch topics' },
-        { status: 500 }
-      )
-    }
-
-    return NextResponse.json(data || [])
+    return NextResponse.json(topics)
   } catch (error) {
     console.error('Error in GET /api/applications/[id]/topics:', error)
     return NextResponse.json(
@@ -54,26 +45,9 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const validatedData = createTopicSchema.parse(body)
 
     // RLS policies will automatically verify user has access to the application
-    const { data, error } = await supabase
-      .from('topics')
-      .insert({
-        name: validatedData.name,
-        description: validatedData.description || null,
-        application_id: applicationId,
-      })
-      .select('id, name, description, created_at, updated_at')
-      .single()
+    const topic = await createTopicForApplication(applicationId, validatedData)
 
-    if (error) {
-      console.error('Error creating topic:', error)
-      // RLS might return a permission error - treat as not found for security
-      return NextResponse.json(
-        { error: 'Application not found' },
-        { status: 404 }
-      )
-    }
-
-    return NextResponse.json(data, { status: 201 })
+    return NextResponse.json(topic, { status: 201 })
   } catch (error) {
     if (error instanceof Error && error.name === 'ZodError') {
       return NextResponse.json(
@@ -82,9 +56,10 @@ export async function POST(req: NextRequest, context: RouteContext) {
       )
     }
     console.error('Error in POST /api/applications/[id]/topics:', error)
+    // RLS might return a permission error - treat as not found for security
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: 'Application not found' },
+      { status: 404 }
     )
   }
 }

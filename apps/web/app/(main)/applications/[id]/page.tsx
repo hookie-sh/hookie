@@ -1,21 +1,21 @@
-"use client";
+'use client'
 
-import { TopicCard } from "@/components/topic-card";
+import { TopicCard } from '@/features/topics/components/card'
 import {
   createTopicSchema,
   type CreateTopicInput,
-} from "@/data/topics/validation";
-import { fetcher } from "@/utils/api";
-import { generateWebhookUrl } from "@/utils/webhooks";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@hookie/ui/components/button";
+} from '@/features/topics/schemas/topic'
+import { fetcher } from '@/utils/api'
+import { generateWebhookUrl } from '@/utils/webhooks'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Button } from '@hookie/ui/components/button'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@hookie/ui/components/card";
+} from '@hookie/ui/components/card'
 import {
   Dialog,
   DialogContent,
@@ -24,37 +24,37 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@hookie/ui/components/dialog";
-import { Input } from "@hookie/ui/components/input";
-import { Label } from "@hookie/ui/components/label";
-import { Separator } from "@hookie/ui/components/separator";
-import { Activity, ArrowLeft, TrendingUp, Webhook } from "lucide-react";
-import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import useSWR, { mutate } from "swr";
+} from '@hookie/ui/components/dialog'
+import { Input } from '@hookie/ui/components/input'
+import { Label } from '@hookie/ui/components/label'
+import { Separator } from '@hookie/ui/components/separator'
+import { Activity, ArrowLeft, TrendingUp, Webhook } from 'lucide-react'
+import Link from 'next/link'
+import { useParams, useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { Controller, useForm } from 'react-hook-form'
+import useSWR, { mutate } from 'swr'
 
 interface Application {
-  id: string;
-  name: string;
-  description?: string;
+  id: string
+  name: string
+  description?: string
 }
 
 interface Topic {
-  id: string;
-  name: string;
-  description?: string;
-  created_at: string;
-  updated_at: string;
+  id: string
+  name: string
+  description?: string
+  created_at: string
+  updated_at: string
 }
 
 export default function ApplicationDetailPage() {
-  const params = useParams();
-  const router = useRouter();
-  const applicationId = params.id as string;
-  const [isOpen, setIsOpen] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const params = useParams()
+  const router = useRouter()
+  const applicationId = params.id as string
+  const [isOpen, setIsOpen] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const {
     data: application,
@@ -68,7 +68,7 @@ export default function ApplicationDetailPage() {
       revalidateOnReconnect: true,
       errorRetryCount: 3,
     }
-  );
+  )
 
   const {
     data: topics,
@@ -82,7 +82,7 @@ export default function ApplicationDetailPage() {
       revalidateOnReconnect: true,
       errorRetryCount: 3,
     }
-  );
+  )
 
   const {
     control,
@@ -92,96 +92,96 @@ export default function ApplicationDetailPage() {
   } = useForm<CreateTopicInput>({
     resolver: zodResolver(createTopicSchema),
     defaultValues: {
-      name: "",
-      description: "",
+      name: '',
+      description: '',
     },
-  });
+  })
 
   const onSubmit = async (data: CreateTopicInput) => {
     try {
-      setSubmitError(null);
+      setSubmitError(null)
       const response = await fetch(
         `/api/applications/${applicationId}/topics`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify(data),
         }
-      );
+      )
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to create topic");
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create topic')
       }
 
-      const newTopic = await response.json();
+      const newTopic = await response.json()
 
       // Optimistically update the cache, then revalidate
       mutate(
         `/api/applications/${applicationId}/topics`,
         (current: Topic[] | undefined) => {
-          return current ? [newTopic, ...current] : [newTopic];
+          return current ? [newTopic, ...current] : [newTopic]
         },
         false
-      );
+      )
 
       // Revalidate to confirm with server
-      await mutate(`/api/applications/${applicationId}/topics`);
+      await mutate(`/api/applications/${applicationId}/topics`)
 
       // Also update the applications list to reflect new topic count
-      await mutate("/api/applications");
+      await mutate('/api/applications')
 
-      setIsOpen(false);
-      reset();
-      setSubmitError(null);
+      setIsOpen(false)
+      reset()
+      setSubmitError(null)
     } catch (err) {
-      console.error("Failed to create topic:", err);
+      console.error('Failed to create topic:', err)
       setSubmitError(
-        err instanceof Error ? err.message : "Failed to create topic"
-      );
+        err instanceof Error ? err.message : 'Failed to create topic'
+      )
     }
-  };
+  }
 
   const handleDeleteTopic = async (topicId: string) => {
     try {
       const response = await fetch(`/api/topics/${topicId}`, {
-        method: "DELETE",
-      });
+        method: 'DELETE',
+      })
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete topic");
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to delete topic')
       }
 
       // Optimistically update the cache, then revalidate
       mutate(
         `/api/applications/${applicationId}/topics`,
         (current: Topic[] | undefined) => {
-          return current ? current.filter((t) => t.id !== topicId) : [];
+          return current ? current.filter((t) => t.id !== topicId) : []
         },
         false
-      );
+      )
 
       // Revalidate to confirm with server
-      await mutate(`/api/applications/${applicationId}/topics`);
+      await mutate(`/api/applications/${applicationId}/topics`)
 
       // Also update the applications list to reflect new topic count
-      await mutate("/api/applications");
+      await mutate('/api/applications')
     } catch (err) {
-      console.error("Failed to delete topic:", err);
+      console.error('Failed to delete topic:', err)
       // Revalidate on error to get accurate state
-      await mutate(`/api/applications/${applicationId}/topics`);
+      await mutate(`/api/applications/${applicationId}/topics`)
     }
-  };
+  }
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>
       </div>
-    );
+    )
   }
 
   if (error || !application) {
@@ -189,14 +189,14 @@ export default function ApplicationDetailPage() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <p className="text-destructive mb-4">
-            {error instanceof Error ? error.message : "Application not found"}
+            {error instanceof Error ? error.message : 'Application not found'}
           </p>
           <Link href="/applications">
             <Button variant="outline">Back to Applications</Button>
           </Link>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -331,7 +331,7 @@ export default function ApplicationDetailPage() {
                     Cancel
                   </Button>
                   <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? "Creating..." : "Create"}
+                    {isSubmitting ? 'Creating...' : 'Create'}
                   </Button>
                 </DialogFooter>
               </form>
@@ -345,7 +345,7 @@ export default function ApplicationDetailPage() {
             {submitError ||
               (topicsError instanceof Error
                 ? topicsError.message
-                : "Failed to load topics")}
+                : 'Failed to load topics')}
           </div>
         )}
 
@@ -376,7 +376,7 @@ export default function ApplicationDetailPage() {
                 webhookUrl={generateWebhookUrl(applicationId, topic.id)}
                 onCopy={() => {
                   // Toast notification could be added here
-                  console.log("Copied to clipboard");
+                  console.log('Copied to clipboard')
                 }}
                 onDelete={() => handleDeleteTopic(topic.id)}
               />
@@ -402,5 +402,5 @@ export default function ApplicationDetailPage() {
         </Card>
       </main>
     </>
-  );
+  )
 }

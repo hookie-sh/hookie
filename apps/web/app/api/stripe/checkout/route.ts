@@ -1,12 +1,12 @@
-import { createCheckoutSession } from '@/features/subscriptions/db/server'
-import { checkoutSessionSchema } from '@/data/stripe/validation'
+import { createCheckoutSession } from '@/features/products/db/server'
+import { checkoutSessionSchema } from '@/features/products/schemas/checkout-session'
 import { NextRequest, NextResponse } from 'next/server'
 import { ZodError } from 'zod'
 import { auth } from '@clerk/nextjs/server'
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, orgId } = await auth()
+    const { userId } = await auth()
 
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

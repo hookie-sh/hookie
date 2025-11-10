@@ -1,4 +1,4 @@
-import { createApplicationSchema } from '@/data/apps/validation'
+import { createApplicationSchema } from '@/features/applications/schemas/application'
 import {
   createApplication,
   getApplicationsWithTopicCountByUserId,
