@@ -1,5 +1,3 @@
-import { getStripeProducts } from '@/clients/stripe.server'
-import { enhancePlansWithStripe } from '@/data/stripe/plans'
 import {
   Card,
   CardHeader,
@@ -9,47 +7,49 @@ import {
 } from '@hookie/ui/components/card'
 import { Badge } from '@hookie/ui/components/badge'
 import { Check } from 'lucide-react'
-import { PurchasePlan } from '../purchase-plan'
+import { listProducts } from '../../db/server'
+import { PurchaseProduct } from '../purchase-product'
 
-export async function Plans() {
-  const stripeProducts = await getStripeProducts()
-  const plans = enhancePlansWithStripe(stripeProducts)
+export async function Products() {
+  const products = await listProducts()
   return (
     <>
-      {plans.map((plan) => (
+      {products.map((product) => (
         <Card
-          key={plan.name}
+          key={product.name}
           className={`flex flex-col ${
-            plan.highlight ? 'border-primary/20 shadow-md' : ''
+            product.highlight ? 'border-primary/20 shadow-md' : ''
           }`}
         >
           <CardHeader>
             <div className="flex items-center justify-between mb-2">
-              <CardTitle className="text-2xl">{plan.displayName}</CardTitle>
-              {plan.badge && (
-                <Badge variant={plan.badge.variant}>{plan.badge.label}</Badge>
+              <CardTitle className="text-2xl">{product.displayName}</CardTitle>
+              {product.badge && (
+                <Badge variant={product.badge.variant}>
+                  {product.badge.label}
+                </Badge>
               )}
             </div>
             <div className="mt-4">
-              <div className="text-4xl font-bold">{plan.price.display}</div>
-              {plan.price.monthly && (
+              <div className="text-4xl font-bold">{product.price.display}</div>
+              {product.price.monthly && (
                 <div className="text-sm text-muted-foreground mt-1">
-                  {plan.price.monthly}
+                  {product.price.monthly}
                 </div>
               )}
               <div className="text-sm text-muted-foreground mt-1">
-                {plan.price.webhookLimit}
+                {product.price.webhookLimit}
               </div>
             </div>
           </CardHeader>
           <CardContent className="flex-1">
-            {plan.previousPlanName && (
+            {product.previousPlanName && (
               <p className="text-xs text-muted-foreground mb-4">
-                Everything in {plan.previousPlanName}, plus:
+                Everything in {product.previousPlanName}, plus:
               </p>
             )}
             <ul className="space-y-3">
-              {plan.features.map((feature, index) => (
+              {product.features.map((feature, index) => (
                 <li key={index} className="flex items-start gap-2">
                   <Check className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                   <span className="text-sm">{feature.text}</span>
@@ -58,7 +58,7 @@ export async function Plans() {
             </ul>
           </CardContent>
           <CardFooter>
-            <PurchasePlan plan={plan} />
+            <PurchaseProduct product={product} />
           </CardFooter>
         </Card>
       ))}

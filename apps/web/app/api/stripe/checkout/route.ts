@@ -1,9 +1,7 @@
-import { createCheckoutSession } from '@/clients/stripe.server'
+import { createCheckoutSession } from '@/features/subscriptions/db/server'
 import { checkoutSessionSchema } from '@/data/stripe/validation'
 import { NextRequest, NextResponse } from 'next/server'
 import { ZodError } from 'zod'
-import { createSubscription } from '@/data/db/subscriptions'
-import { supabaseServiceClient } from '@/clients/supabase.service'
 import { auth } from '@clerk/nextjs/server'
 
 export async function POST(req: NextRequest) {
