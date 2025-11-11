@@ -1,29 +1,7 @@
-export interface PlanFeature {
-  text: string
-}
+import Stripe from 'stripe'
+import { EnhancedProduct, ProductMetadata } from '../types'
 
-export interface PlanMetadata {
-  name: string
-  displayName: string
-  badge?: {
-    label: string
-    variant: 'default' | 'secondary'
-  }
-  price: {
-    display: string
-    monthly?: string
-    webhookLimit: string
-  }
-  previousPlanName?: string
-  features: PlanFeature[]
-  cta: {
-    label: string
-    variant?: 'default' | 'outline'
-  }
-  highlight?: boolean
-}
-
-export const plansMetadata: PlanMetadata[] = [
+export const productsMetadata: ProductMetadata[] = [
   {
     name: 'Free',
     displayName: 'Free',
@@ -121,26 +99,20 @@ export const plansMetadata: PlanMetadata[] = [
   },
 ]
 
-export interface EnhancedPlan extends PlanMetadata {
-  stripeProductId?: string
-  stripePriceId?: string
-  stripePrice?: number
-}
-
 /**
  * Matches a Stripe product name to a plan name (case-insensitive, flexible matching)
  */
-function matchPlanName(stripeName: string, planName: string): boolean {
+function matchProductName(stripeName: string, productName: string): boolean {
   const normalizedStripe = stripeName.toLowerCase().trim()
-  const normalizedPlan = planName.toLowerCase().trim()
+  const normalizedProduct = productName.toLowerCase().trim()
 
   // Exact match
-  if (normalizedStripe === normalizedPlan) return true
+  if (normalizedStripe === normalizedProduct) return true
 
   // Contains match (e.g., "Pro Plan" matches "Pro")
   if (
-    normalizedStripe.includes(normalizedPlan) ||
-    normalizedPlan.includes(normalizedStripe)
+    normalizedStripe.includes(normalizedProduct) ||
+    normalizedProduct.includes(normalizedStripe)
   ) {
     return true
   }
@@ -151,22 +123,19 @@ function matchPlanName(stripeName: string, planName: string): boolean {
 /**
  * Enhances Stripe products with plan metadata by matching product names
  */
-export function enhancePlansWithStripe(
-  stripeProducts: Array<{
-    id: string
-    name: string
-    description?: string | null
-    default_price?: string | { id: string } | null
-  }>
-): EnhancedPlan[] {
-  return plansMetadata.map((plan) => {
-    // Find matching Stripe product
-    const stripeProduct = stripeProducts.find((product) =>
-      matchPlanName(product.name, plan.name)
+export function enhanceStripeProducts(
+  stripeProducts: Stripe.Product[]
+): EnhancedProduct[] {
+  const enhanced: EnhancedProduct[] = []
+
+  for (const stripeProduct of stripeProducts) {
+    // Find matching metadata by product name
+    const metadata = productsMetadata.find((meta) =>
+      matchProductName(stripeProduct.name, meta.name)
     )
 
-    if (!stripeProduct) {
-      return plan
+    if (!metadata) {
+      continue
     }
 
     // Extract price ID - handle both string and Price object
@@ -175,10 +144,12 @@ export function enhancePlansWithStripe(
         ? stripeProduct.default_price
         : stripeProduct.default_price?.id
 
-    return {
-      ...plan,
+    enhanced.push({
+      ...metadata,
       stripeProductId: stripeProduct.id,
       stripePriceId: priceId,
-    }
-  })
+    })
+  }
+
+  return enhanced
 }

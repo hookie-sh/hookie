@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { supabase } from '@/clients/supabase.server'
+import { deleteTopic } from '@/features/topics/db/server'
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -16,23 +16,12 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
     }
 
     // RLS policies will automatically verify user has access to the topic and parent application
-    const { error: deleteError } = await supabase
-      .from('topics')
-      .delete()
-      .eq('id', topicId)
-
-    if (deleteError) {
-      console.error('Error deleting topic:', deleteError)
-      // RLS might return a permission error - treat as not found for security
-      return NextResponse.json({ error: 'Topic not found' }, { status: 404 })
-    }
+    await deleteTopic(topicId)
 
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error in DELETE /api/topics/[id]:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    // RLS might return a permission error - treat as not found for security
+    return NextResponse.json({ error: 'Topic not found' }, { status: 404 })
   }
 }

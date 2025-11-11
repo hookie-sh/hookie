@@ -1,14 +1,12 @@
-import { createCheckoutSession } from '@/clients/stripe.server'
-import { checkoutSessionSchema } from '@/data/stripe/validation'
+import { createCheckoutSession } from '@/features/products/db/server'
+import { checkoutSessionSchema } from '@/features/products/schemas/checkout-session'
 import { NextRequest, NextResponse } from 'next/server'
 import { ZodError } from 'zod'
-import { createSubscription } from '@/data/db/subscriptions'
-import { supabaseServiceClient } from '@/clients/supabase.service'
 import { auth } from '@clerk/nextjs/server'
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, orgId } = await auth()
+    const { userId } = await auth()
 
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

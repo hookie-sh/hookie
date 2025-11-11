@@ -7,10 +7,10 @@ import { Button } from '@hookie/ui/components/button'
 import {
   checkoutSessionSchema,
   type CheckoutSessionInput,
-} from '@/data/stripe/validation'
-import type { EnhancedPlan } from '@/data/stripe/plans'
+} from '@/features/products/schemas/checkout-session'
+import type { EnhancedProduct } from '../types'
 
-export function PurchasePlan({ plan }: { plan: EnhancedPlan }) {
+export function PurchaseProduct({ product }: { product: EnhancedProduct }) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -20,7 +20,7 @@ export function PurchasePlan({ plan }: { plan: EnhancedPlan }) {
   } = useForm<CheckoutSessionInput>({
     resolver: zodResolver(checkoutSessionSchema),
     defaultValues: {
-      priceId: plan.stripePriceId || '',
+      priceId: product.stripePriceId || '',
     },
   })
 
@@ -76,10 +76,10 @@ export function PurchasePlan({ plan }: { plan: EnhancedPlan }) {
       <Button
         type="submit"
         className="w-full"
-        variant={plan.cta.variant || 'default'}
-        disabled={isLoading || !plan.stripePriceId}
+        variant={product.cta.variant || 'default'}
+        disabled={isLoading || !product.stripePriceId}
       >
-        {isLoading ? 'Loading...' : plan.cta.label}
+        {isLoading ? 'Loading...' : product.cta.label}
       </Button>
     </form>
   )

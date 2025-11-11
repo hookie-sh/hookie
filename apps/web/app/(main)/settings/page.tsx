@@ -1,7 +1,12 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@hookie/ui/components/card";
-import { Input } from "@hookie/ui/components/input";
-import { Label } from "@hookie/ui/components/label";
-import { Button } from "@hookie/ui/components/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@hookie/ui/components/card'
+import { Input } from '@hookie/ui/components/input'
+import { Label } from '@hookie/ui/components/label'
 
 export default function SettingsPage() {
   return (
@@ -18,14 +23,17 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Profile</CardTitle>
-              <CardDescription>
-                Update your profile information
-              </CardDescription>
+              <CardDescription>Update your profile information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="your@email.com" disabled />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="your@email.com"
+                  disabled
+                />
                 <p className="text-sm text-muted-foreground">
                   Email is managed by your authentication provider
                 </p>
@@ -42,13 +50,12 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-              Settings functionality coming soon
+                Settings functionality coming soon
               </p>
             </CardContent>
           </Card>
         </div>
       </main>
     </>
-  );
+  )
 }
-
