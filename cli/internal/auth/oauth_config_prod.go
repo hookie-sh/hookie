@@ -11,5 +11,4 @@ var PublishableKey = "pk_test_c21vb3RoLWdsaWRlci05My5jbGVyay5hY2NvdW50cy5kZXYk" 
 
 // WebAppURL is the web application URL for PRODUCTION
 // Set this to your production web app URL (e.g., https://your-domain.com)
-var WebAppURL = "http://localhost:3000" // Set your production web app URL here
-
+var WebAppURL = "https://hookie.sh" // Set your production web app URL here
