@@ -8,7 +8,7 @@ primary_region = 'sjc'
 
 [build]
   [build.args]
-    GO_VERSION = '1.22'
+    GO_VERSION = '1.25'
 
 [env]
   PORT = '50051'
