@@ -195,23 +195,6 @@ func (s *Service) ListApplications(ctx context.Context, req *proto.ListApplicati
 	}
 	log.Printf("[ListApplications] Token info extracted - user_id=%q, org_id=%q", tokenInfo.UserID, tokenInfo.OrgID)
 
-	// Debug: Query all applications to see what user_ids exist (limit to 50 for debugging)
-	debugData, _, debugErr := s.supabase.GetClient().From("applications").
-		Select("id,name,user_id,org_id", "exact", false).
-		Execute()
-	if debugErr == nil {
-		log.Printf("[ListApplications] DEBUG: Sample applications in DB (first 100): %s", string(debugData))
-	} else {
-		log.Printf("[ListApplications] DEBUG: Failed to query sample applications: %v", debugErr)
-	}
-
-	// Debug: Query specifically for the user_id from token
-	specificUserData, _, specificErr := s.supabase.GetClient().From("applications").
-		Select("id,name,user_id,org_id", "exact", false).
-		Eq("user_id", tokenInfo.UserID).
-		Execute()
-	log.Printf("[ListApplications] DEBUG: Query for user_id=%q returned: %s, error=%v", tokenInfo.UserID, string(specificUserData), specificErr)
-
 	// Query user-owned applications
 	// Note: Using service role key should bypass RLS, but let's verify the query works
 	query := s.supabase.GetClient().From("applications").

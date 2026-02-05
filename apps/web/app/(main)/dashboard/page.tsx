@@ -1,15 +1,25 @@
-import Link from 'next/link'
+import { getDashboardStats } from "@/features/dashboard/db/server";
+import { auth } from "@clerk/nextjs/server";
+import { Button } from "@hookie/ui/components/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@hookie/ui/components/card'
-import { Button } from '@hookie/ui/components/button'
-import { Folder, Webhook, TrendingUp } from 'lucide-react'
+} from "@hookie/ui/components/card";
+import { Folder, TrendingUp, Webhook } from "lucide-react";
+import Link from "next/link";
 
 export default async function DashboardPage() {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return null;
+  }
+
+  const stats = await getDashboardStats(userId);
+
   return (
     <>
       {/* Main Content */}
@@ -31,9 +41,13 @@ export default async function DashboardPage() {
               <Folder className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">
+                {stats.totalApplications}
+              </div>
               <p className="text-xs text-muted-foreground">
-                Create your first application
+                {stats.totalApplications === 0
+                  ? "Create your first application"
+                  : `${stats.totalApplications} application${stats.totalApplications === 1 ? "" : "s"}`}
               </p>
             </CardContent>
           </Card>
@@ -45,9 +59,11 @@ export default async function DashboardPage() {
               <Webhook className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{stats.totalTopics}</div>
               <p className="text-xs text-muted-foreground">
-                No active topics yet
+                {stats.totalTopics === 0
+                  ? "No active topics yet"
+                  : `${stats.totalTopics} topic${stats.totalTopics === 1 ? "" : "s"}`}
               </p>
             </CardContent>
           </Card>
@@ -59,8 +75,12 @@ export default async function DashboardPage() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">No activity today</p>
+              <div className="text-2xl font-bold">{stats.webhooksToday}</div>
+              <p className="text-xs text-muted-foreground">
+                {stats.webhooksToday === 0
+                  ? "No activity today"
+                  : "Active today"}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -97,5 +117,5 @@ export default async function DashboardPage() {
         </Card>
       </main>
     </>
-  )
+  );
 }

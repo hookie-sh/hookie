@@ -8,7 +8,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Catch-all route handler for all HTTP methods
-app.all("*", (req, res) => {
+app.use((req, res) => {
   const requestInfo = {
     method: req.method,
     path: req.path,
