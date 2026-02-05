@@ -30,11 +30,6 @@ export function AppHeader() {
               Applications
             </Button>
           </Link>
-          <Link href="/settings">
-            <Button variant={pathname === "/settings" ? "default" : "ghost"}>
-              Settings
-            </Button>
-          </Link>
         </div>
         <div className="flex items-center gap-4">
           <OrganizationSwitcher />
