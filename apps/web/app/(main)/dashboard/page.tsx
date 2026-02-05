@@ -1,34 +1,57 @@
+import { ApplicationCard } from "@/features/applications/components/card";
+import { CreateApplicationForm } from "@/features/applications/components/client/create-application-form";
+import { getRecentApplicationsByUserId } from "@/features/applications/db/server";
 import { getDashboardStats } from "@/features/dashboard/db/server";
 import { auth } from "@clerk/nextjs/server";
-import { Button } from "@hookie/ui/components/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@hookie/ui/components/card";
 import { Folder, TrendingUp, Webhook } from "lucide-react";
-import Link from "next/link";
 
 export default async function DashboardPage() {
-  const { userId } = await auth();
+  const { userId, orgId } = await auth();
 
   if (!userId) {
     return null;
   }
 
-  const stats = await getDashboardStats(userId);
+  const stats = await getDashboardStats(userId, orgId);
+  const recentApplications = await getRecentApplicationsByUserId(
+    userId,
+    orgId,
+    5
+  );
+
+  // Transform applications to match ApplicationCard props
+  const applicationsWithTopicCount =
+    recentApplications?.map((app) => {
+      let topicCount = 0;
+      if (app.topics && Array.isArray(app.topics) && app.topics.length > 0) {
+        topicCount = (app.topics[0] as any)?.count || 0;
+      }
+      return {
+        id: app.id,
+        name: app.name,
+        description: app.description,
+        topicCount,
+      };
+    }) || [];
 
   return (
     <>
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">Dashboard</h2>
-          <p className="text-muted-foreground">
-            Welcome back! Here's an overview of your webhook activity.
-          </p>
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h2 className="text-3xl font-bold mb-2">Dashboard</h2>
+            <p className="text-muted-foreground">
+              Welcome back! Here's an overview of your webhook activity.
+            </p>
+          </div>
+          <CreateApplicationForm />
         </div>
 
         {/* Stats Cards */}
@@ -85,36 +108,49 @@ export default async function DashboardPage() {
           </Card>
         </div>
 
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>
-              Get started with Hookie by creating your first application
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/applications">
-              <Button>Create Application</Button>
-            </Link>
-          </CardContent>
-        </Card>
+        {/* Recent Applications */}
+        <div className="mb-8">
+          <div className="mb-4">
+            <h3 className="text-xl font-semibold mb-1">Recent Applications</h3>
+            <p className="text-sm text-muted-foreground">
+              Your most recently created applications
+            </p>
+          </div>
+          {applicationsWithTopicCount.length === 0 ? (
+            <div className="border border-border rounded-lg p-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                No applications yet. Create your first application to get
+                started.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+              {applicationsWithTopicCount.map((application) => (
+                <ApplicationCard
+                  key={application.id}
+                  {...application}
+                  href={`/applications/${application.id}`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Recent Activity */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>
+        <div>
+          <div className="mb-4">
+            <h3 className="text-xl font-semibold mb-1">Recent Activity</h3>
+            <p className="text-sm text-muted-foreground">
               Your latest webhook events will appear here
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground text-center py-8">
+            </p>
+          </div>
+          <div className="border border-border rounded-lg p-8 text-center">
+            <p className="text-sm text-muted-foreground">
               No recent activity. Create an application to start receiving
               webhooks.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </main>
     </>
   );

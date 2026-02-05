@@ -8,9 +8,13 @@ export interface DashboardStats {
 
 export async function getDashboardStats(
   userId: string,
+  orgId?: string | null
 ): Promise<DashboardStats> {
   try {
-    const applications = await getApplicationsWithTopicCountByUserId(userId);
+    const applications = await getApplicationsWithTopicCountByUserId(
+      userId,
+      orgId
+    );
 
     const totalApplications = applications?.length || 0;
 

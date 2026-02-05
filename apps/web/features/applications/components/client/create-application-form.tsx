@@ -1,9 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { mutate } from "swr";
 import { Button } from "@hookie/ui/components/button";
 import {
   Dialog,
@@ -16,6 +13,9 @@ import {
 } from "@hookie/ui/components/dialog";
 import { Input } from "@hookie/ui/components/input";
 import { Label } from "@hookie/ui/components/label";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { mutate } from "swr";
 import {
   createApplicationSchema,
   type CreateApplicationInput,
@@ -77,7 +77,7 @@ export function CreateApplicationForm({
         (current: Application[] | undefined) => {
           return current ? [newApp, ...current] : [newApp];
         },
-        false,
+        false
       );
 
       // Revalidate to confirm with server
@@ -121,7 +121,12 @@ export function CreateApplicationForm({
                 name="name"
                 control={control}
                 render={({ field }) => (
-                  <Input id="name" placeholder="My Application" {...field} />
+                  <Input
+                    id="name"
+                    placeholder="My Application"
+                    data-1p-ignore
+                    {...field}
+                  />
                 )}
               />
               {errors.name && (
