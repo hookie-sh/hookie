@@ -16,23 +16,23 @@
     "@hookie/eslint-config": "workspace:*",
     "@hookie/typescript-config": "workspace:*",
     "@types/node": "^22.15.3",
-    "@types/react": "19.1.0",
-    "@types/react-dom": "19.1.1",
-    "eslint": "^9.38.0",
-    "tailwindcss": "^4.0.0",
-    "typescript": "5.9.2"
+    "@types/react": "19.2.13",
+    "@types/react-dom": "19.2.3",
+    "eslint": "^9.39.2",
+    "tailwindcss": "^4.1.18",
+    "typescript": "5.9.3"
   },
   "dependencies": {
-    "@radix-ui/react-avatar": "^1.1.10",
+    "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.15",
-    "@radix-ui/react-label": "^2.1.7",
-    "@radix-ui/react-separator": "^1.1.7",
-    "@radix-ui/react-slot": "^1.2.3",
+    "@radix-ui/react-label": "^2.1.8",
+    "@radix-ui/react-separator": "^1.1.8",
+    "@radix-ui/react-slot": "^1.2.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "lucide-react": "^0.552.0",
-    "react": "^19.2.0",
-    "react-dom": "^19.1.0",
-    "tailwind-merge": "^3.3.1"
+    "lucide-react": "^0.563.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "tailwind-merge": "^3.4.0"
   }
 }
