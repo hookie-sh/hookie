@@ -44,7 +44,7 @@ export default async function DashboardPage() {
     <>
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <div className="mb-8 flex justify-between items-start">
+        <div className="mb-8 flex justify-between items-center">
           <div>
             <h2 className="text-3xl font-bold mb-2">Dashboard</h2>
             <p className="text-muted-foreground">
