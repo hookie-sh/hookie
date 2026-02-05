@@ -1,8 +1,9 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import useSWR from "swr";
-import Link from "next/link";
+import { ApplicationHeader } from "@/features/applications/components/client/application-header";
+import { ApplicationStats } from "@/features/applications/components/client/application-stats";
+import { TopicsSection } from "@/features/topics/components/client/topics-section";
+import { fetcher } from "@/utils/api";
 import { Button } from "@hookie/ui/components/button";
 import {
   Card,
@@ -12,10 +13,9 @@ import {
   CardTitle,
 } from "@hookie/ui/components/card";
 import { Separator } from "@hookie/ui/components/separator";
-import { ApplicationHeader } from "@/features/applications/components/client/application-header";
-import { ApplicationStats } from "@/features/applications/components/client/application-stats";
-import { TopicsSection } from "@/features/topics/components/client/topics-section";
-import { fetcher } from "@/utils/api";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import useSWR from "swr";
 
 interface Application {
   id: string;
@@ -38,7 +38,7 @@ export default function ApplicationDetailPage() {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       errorRetryCount: 3,
-    },
+    }
   );
 
   const { data: topics } = useSWR<any[]>(
@@ -48,7 +48,7 @@ export default function ApplicationDetailPage() {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       errorRetryCount: 3,
-    },
+    }
   );
 
   if (isLoading) {
@@ -79,6 +79,7 @@ export default function ApplicationDetailPage() {
       <ApplicationHeader
         name={application.name}
         description={application.description}
+        applicationId={applicationId}
       />
 
       <ApplicationStats topicCount={topics?.length || 0} />

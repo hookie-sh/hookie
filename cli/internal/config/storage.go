@@ -9,12 +9,14 @@ import (
 	"strings"
 
 	"github.com/99designs/keyring"
+	"github.com/segmentio/ksuid"
 )
 
 type Config struct {
-	Token    string `json:"-"` // Token stored in keyring, not in JSON
-	UserID   string `json:"user_id"`
-	RelayURL string `json:"relay_url,omitempty"`
+	Token     string `json:"-"` // Token stored in keyring, not in JSON
+	UserID    string `json:"user_id"`
+	RelayURL  string `json:"relay_url,omitempty"`
+	MachineID string `json:"machine_id,omitempty"`
 }
 
 const (
@@ -70,26 +72,39 @@ func Load() (*Config, error) {
 	if data, err := os.ReadFile(configPath); err == nil {
 		// Use a struct that can read the old format with token
 		var fileConfig struct {
-			Token    string `json:"token"`
-			UserID   string `json:"user_id"`
-			RelayURL string `json:"relay_url,omitempty"`
+			Token     string `json:"token"`
+			UserID    string `json:"user_id"`
+			RelayURL  string `json:"relay_url,omitempty"`
+			MachineID string `json:"machine_id,omitempty"`
 		}
 		if err := json.Unmarshal(data, &fileConfig); err == nil {
 			config.UserID = fileConfig.UserID
 			config.RelayURL = fileConfig.RelayURL
+			config.MachineID = fileConfig.MachineID
 			// If there's a token in the file, migrate it to keyring
 			if fileConfig.Token != "" {
 				if err := migrateTokenToKeyring(fileConfig.Token); err == nil {
 					// Migration successful, rewrite config without token
 					configToSave := &Config{
-						UserID:   config.UserID,
-						RelayURL: config.RelayURL,
+						UserID:    config.UserID,
+						RelayURL:  config.RelayURL,
+						MachineID: config.MachineID,
 					}
 					if err := saveConfigFile(configToSave); err == nil {
 						// Successfully migrated and saved
 					}
 				}
 			}
+		}
+	}
+
+	// Generate machine_id if it doesn't exist
+	if config.MachineID == "" {
+		config.MachineID = fmt.Sprintf("mach_%s", ksuid.New().String())
+		// Save config to persist machine_id
+		if err := saveConfigFile(config); err != nil {
+			// Log error but don't fail - machine_id will be regenerated next time
+			fmt.Printf("Warning: failed to save machine_id: %v\n", err)
 		}
 	}
 
@@ -181,7 +196,7 @@ func Save(config *Config) error {
 	return saveConfigFile(config)
 }
 
-// saveConfigFile saves only UserID and RelayURL to the JSON file
+// saveConfigFile saves only UserID, RelayURL, and MachineID to the JSON file
 func saveConfigFile(config *Config) error {
 	configPath, err := getConfigPath()
 	if err != nil {
@@ -190,11 +205,13 @@ func saveConfigFile(config *Config) error {
 
 	// Create a copy without Token for JSON serialization
 	fileConfig := struct {
-		UserID   string `json:"user_id"`
-		RelayURL string `json:"relay_url,omitempty"`
+		UserID    string `json:"user_id"`
+		RelayURL  string `json:"relay_url,omitempty"`
+		MachineID string `json:"machine_id,omitempty"`
 	}{
-		UserID:   config.UserID,
-		RelayURL: config.RelayURL,
+		UserID:    config.UserID,
+		RelayURL:  config.RelayURL,
+		MachineID: config.MachineID,
 	}
 
 	data, err := json.MarshalIndent(fileConfig, "", "  ")

@@ -18,14 +18,13 @@ import (
 	"github.com/hookie/cli/internal/config"
 	"github.com/hookie/cli/internal/relay"
 	"github.com/hookie/cli/proto"
-	"github.com/spf13/cobra"
 )
 
 // runListen is a shared function that handles listening to events
 // Parameters:
-//   - topicID: Topic ID to listen to (empty for app/org level)
-//   - appID: Application ID to listen to (empty for topic/org level)
-//   - orgID: Organization ID to listen to (empty for topic/app level)
+//   - topicID: Topic ID to listen to (empty for app level)
+//   - appID: Application ID to listen to (empty for topic level)
+//   - orgID: Organization ID (used for access verification)
 //   - endpointURL: Optional URL to forward events to
 func runListen(topicID, appID, orgID string, endpointURL *url.URL) error {
 	cfg, err := config.Load()
@@ -55,7 +54,7 @@ func runListen(topicID, appID, orgID string, endpointURL *url.URL) error {
 		cancel()
 	}()
 
-	stream, err := client.Subscribe(ctx, appID, topicID, orgID)
+	stream, err := client.Subscribe(ctx, appID, topicID, orgID, cfg.MachineID)
 	if err != nil {
 		return fmt.Errorf("failed to subscribe: %w", err)
 	}
@@ -66,8 +65,6 @@ func runListen(topicID, appID, orgID string, endpointURL *url.URL) error {
 		subscriptionInfo = fmt.Sprintf("topic: %s", color.CyanString(topicID))
 	} else if appID != "" {
 		subscriptionInfo = fmt.Sprintf("app: %s, all topics", color.CyanString(appID))
-	} else if orgID != "" {
-		subscriptionInfo = fmt.Sprintf("org: %s, all applications", color.CyanString(orgID))
 	}
 	if endpointURL != nil {
 		subscriptionInfo += fmt.Sprintf(", forwarding to: %s", color.CyanString(endpointURL.String()))
@@ -90,6 +87,12 @@ func runListen(topicID, appID, orgID string, endpointURL *url.URL) error {
 			return fmt.Errorf("failed to receive event: %w", err)
 		}
 
+		// Check if this is a disconnect event
+		if event.EventType == "disconnect" {
+			fmt.Println(color.YellowString("\nDisconnected by server. Exiting..."))
+			return nil
+		}
+
 		printEvent(event, debug)
 
 		// Forward event to endpoint if provided
@@ -99,36 +102,6 @@ func runListen(topicID, appID, orgID string, endpointURL *url.URL) error {
 	}
 }
 
-var listenCmd = &cobra.Command{
-	Use:   "listen [endpoint-url]",
-	Short: "Listen to webhook events for the current organization",
-	Long:  `Listen to webhook events for all applications and topics in the current organization. Optionally forward events to an endpoint URL. Use --org-id to change the organization.`,
-	Args:  cobra.MaximumNArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		// Parse and validate endpoint URL if provided
-		var endpointURL *url.URL
-		if len(args) > 0 {
-			parsedURL, err := url.Parse(args[0])
-			if err != nil {
-				return fmt.Errorf("invalid endpoint URL: %w", err)
-			}
-			if parsedURL.Scheme == "" || parsedURL.Host == "" {
-				return fmt.Errorf("invalid endpoint URL: must include scheme and host (e.g., http://localhost:3001/webhooks)")
-			}
-			endpointURL = parsedURL
-		}
-
-		// Use flag value if set, otherwise use global orgID
-		effectiveOrgID := orgIDFlag
-		if effectiveOrgID == "" {
-			effectiveOrgID = orgID
-		}
-
-		// If no org ID is provided, we need to get it from the token
-		// For now, we'll pass it to the backend which will use the token's org_id
-		return runListen("", "", effectiveOrgID, endpointURL)
-	},
-}
 
 func printEvent(event *proto.Event, debug bool) {
 	timestamp := time.Unix(0, event.Timestamp).Format(time.RFC3339)
@@ -286,8 +259,4 @@ func forwardEvent(client *http.Client, event *proto.Event, baseURL *url.URL) {
 	)
 }
 
-func init() {
-	listenCmd.Flags().StringVar(&orgIDFlag, "org-id", "", "Organization ID (optional, uses token's org_id if not provided)")
-	rootCmd.AddCommand(listenCmd)
-}
 

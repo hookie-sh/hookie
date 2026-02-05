@@ -35,7 +35,9 @@ type SubscribeRequest struct {
 	TopicId string `protobuf:"bytes,2,opt,name=topic_id,json=topicId,proto3" json:"topic_id,omitempty"`
 	// Organization ID (optional, mutually exclusive with app_id and topic_id)
 	// If provided, subscribes to events for all applications and topics in this organization
-	OrgId         string `protobuf:"bytes,3,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	OrgId string `protobuf:"bytes,3,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	// Machine ID (required) - unique identifier for the client machine
+	MachineId     string `protobuf:"bytes,4,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -91,6 +93,13 @@ func (x *SubscribeRequest) GetOrgId() string {
 	return ""
 }
 
+func (x *SubscribeRequest) GetMachineId() string {
+	if x != nil {
+		return x.MachineId
+	}
+	return ""
+}
+
 // Webhook event message
 type Event struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -117,7 +126,9 @@ type Event struct {
 	// Application ID
 	AppId string `protobuf:"bytes,11,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
 	// Topic ID
-	TopicId       string `protobuf:"bytes,12,opt,name=topic_id,json=topicId,proto3" json:"topic_id,omitempty"`
+	TopicId string `protobuf:"bytes,12,opt,name=topic_id,json=topicId,proto3" json:"topic_id,omitempty"`
+	// Event type: "webhook" for webhook events, "disconnect" for disconnect events
+	EventType     string `protobuf:"bytes,13,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -232,6 +243,13 @@ func (x *Event) GetAppId() string {
 func (x *Event) GetTopicId() string {
 	if x != nil {
 		return x.TopicId
+	}
+	return ""
+}
+
+func (x *Event) GetEventType() string {
+	if x != nil {
+		return x.EventType
 	}
 	return ""
 }
@@ -592,11 +610,13 @@ var File_proto_relay_proto protoreflect.FileDescriptor
 
 const file_proto_relay_proto_rawDesc = "" +
 	"\n" +
-	"\x11proto/relay.proto\x12\x05relay\"[\n" +
+	"\x11proto/relay.proto\x12\x05relay\"z\n" +
 	"\x10SubscribeRequest\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12\x19\n" +
 	"\btopic_id\x18\x02 \x01(\tR\atopicId\x12\x15\n" +
-	"\x06org_id\x18\x03 \x01(\tR\x05orgId\"\xc4\x02\n" +
+	"\x06org_id\x18\x03 \x01(\tR\x05orgId\x12\x1d\n" +
+	"\n" +
+	"machine_id\x18\x04 \x01(\tR\tmachineId\"\xe3\x02\n" +
 	"\x05Event\x12\x16\n" +
 	"\x06method\x18\x01 \x01(\tR\x06method\x12\x10\n" +
 	"\x03url\x18\x02 \x01(\tR\x03url\x12\x12\n" +
@@ -611,7 +631,9 @@ const file_proto_relay_proto_rawDesc = "" +
 	"\ttimestamp\x18\n" +
 	" \x01(\x03R\ttimestamp\x12\x15\n" +
 	"\x06app_id\x18\v \x01(\tR\x05appId\x12\x19\n" +
-	"\btopic_id\x18\f \x01(\tR\atopicId\"0\n" +
+	"\btopic_id\x18\f \x01(\tR\atopicId\x12\x1d\n" +
+	"\n" +
+	"event_type\x18\r \x01(\tR\teventType\"0\n" +
 	"\x17ListApplicationsRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\"R\n" +
 	"\x18ListApplicationsResponse\x126\n" +

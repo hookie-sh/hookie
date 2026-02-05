@@ -10,4 +10,11 @@ if (!supabaseUrl || !supabaseSecretKey) {
 export const supabaseServiceClient = createClient(
   supabaseUrl,
   supabaseSecretKey,
+  {
+    realtime: {
+      params: {
+        eventsPerSecond: 10,
+      },
+    },
+  }
 );

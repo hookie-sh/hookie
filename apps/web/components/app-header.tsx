@@ -1,13 +1,30 @@
 "use client";
 
-import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
+import {
+  OrganizationSwitcher,
+  UserButton,
+  useOrganization,
+} from "@clerk/nextjs";
 import { Button } from "@hookie/ui/components/button";
 import { LogoWordmark } from "@hookie/ui/components/logo-wordmark";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 export function AppHeader() {
   const pathname = usePathname();
+  const { organization } = useOrganization();
+  const prevOrgIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (organization?.id !== prevOrgIdRef.current) {
+      if (prevOrgIdRef.current !== null) {
+        // Organization changed, refresh the page
+        window.location.reload();
+      }
+      prevOrgIdRef.current = organization?.id || null;
+    }
+  }, [organization?.id]);
 
   return (
     <header className="border-b border-border sticky top-0 z-50 w-full bg-background">
@@ -30,9 +47,18 @@ export function AppHeader() {
               Applications
             </Button>
           </Link>
+          <Link href="/settings/connected-clients">
+            <Button
+              variant={pathname?.startsWith("/settings") ? "default" : "ghost"}
+            >
+              Settings
+            </Button>
+          </Link>
         </div>
         <div className="flex items-center gap-4">
-          <OrganizationSwitcher />
+          <OrganizationSwitcher
+            afterSwitchOrganizationUrl={pathname || "/dashboard"}
+          />
           <UserButton />
         </div>
       </div>

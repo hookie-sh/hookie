@@ -32,6 +32,9 @@ message SubscribeRequest {
   // Organization ID (optional, mutually exclusive with app_id and topic_id)
   // If provided, subscribes to events for all applications and topics in this organization
   string org_id = 3;
+  
+  // Machine ID (required) - unique identifier for the client machine
+  string machine_id = 4;
 }
 
 // Webhook event message
@@ -71,6 +74,9 @@ message Event {
   
   // Topic ID
   string topic_id = 12;
+  
+  // Event type: "webhook" for webhook events, "disconnect" for disconnect events
+  string event_type = 13;
 }
 
 // Request to list applications

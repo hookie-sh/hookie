@@ -108,11 +108,12 @@ func (c *Client) ListTopics(ctx context.Context, appID string) ([]*proto.Topic, 
 	return resp.Topics, nil
 }
 
-func (c *Client) Subscribe(ctx context.Context, appID, topicID, orgID string) (proto.RelayService_SubscribeClient, error) {
+func (c *Client) Subscribe(ctx context.Context, appID, topicID, orgID, machineID string) (proto.RelayService_SubscribeClient, error) {
 	req := &proto.SubscribeRequest{
-		AppId:   appID,
-		TopicId: topicID,
-		OrgId:   orgID,
+		AppId:     appID,
+		TopicId:   topicID,
+		OrgId:     orgID,
+		MachineId: machineID,
 	}
 	return c.client.Subscribe(c.createContext(ctx), req)
 }

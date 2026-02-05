@@ -9,6 +9,7 @@ require (
 	github.com/supabase-community/supabase-go v0.0.4
 	google.golang.org/grpc v1.74.2
 	google.golang.org/protobuf v1.36.8
+	nhooyr.io/websocket v1.8.11
 )
 
 require (
