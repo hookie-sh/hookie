@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 
 	"github.com/fatih/color"
@@ -69,8 +70,34 @@ var appsCmd = &cobra.Command{
 	},
 }
 
+var appsListenCmd = &cobra.Command{
+	Use:   "listen [app-id] [endpoint-url]",
+	Short: "Listen to webhook events for an application",
+	Long:  `Listen to webhook events for all topics in a specific application. Optionally forward events to an endpoint URL.`,
+	Args:  cobra.RangeArgs(1, 2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		appID := args[0]
+
+		// Parse and validate endpoint URL if provided
+		var endpointURL *url.URL
+		if len(args) > 1 {
+			parsedURL, err := url.Parse(args[1])
+			if err != nil {
+				return fmt.Errorf("invalid endpoint URL: %w", err)
+			}
+			if parsedURL.Scheme == "" || parsedURL.Host == "" {
+				return fmt.Errorf("invalid endpoint URL: must include scheme and host (e.g., http://localhost:3001/webhooks)")
+			}
+			endpointURL = parsedURL
+		}
+
+		return runListen("", appID, "", endpointURL)
+	},
+}
+
 func init() {
 	appsCmd.Flags().StringVar(&orgIDFlag, "org-id", "", "Filter by organization ID")
+	appsCmd.AddCommand(appsListenCmd)
 	rootCmd.AddCommand(appsCmd)
 }
 

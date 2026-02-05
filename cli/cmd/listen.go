@@ -21,20 +21,90 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	appIDFlag   string
-	topicIDFlag string
-)
+// runListen is a shared function that handles listening to events
+// Parameters:
+//   - topicID: Topic ID to listen to (empty for app/org level)
+//   - appID: Application ID to listen to (empty for topic/org level)
+//   - orgID: Organization ID to listen to (empty for topic/app level)
+//   - endpointURL: Optional URL to forward events to
+func runListen(topicID, appID, orgID string, endpointURL *url.URL) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
 
-var listenCmd = &cobra.Command{
-	Use:   "listen",
-	Short: "Listen to webhook events",
-	Long:  `Listen to webhook events for an application and/or specific topic. Can be run multiple times with different parameters.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if appIDFlag == "" {
-			return fmt.Errorf("--app-id is required")
+	if cfg.Token == "" {
+		return fmt.Errorf("not authenticated. Run 'hookie login' first")
+	}
+
+	client, err := relay.NewClient(cfg.Token)
+	if err != nil {
+		return fmt.Errorf("failed to connect to relay: %w", err)
+	}
+	defer client.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Handle interrupt signals
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		fmt.Println("\nShutting down...")
+		cancel()
+	}()
+
+	stream, err := client.Subscribe(ctx, appID, topicID, orgID)
+	if err != nil {
+		return fmt.Errorf("failed to subscribe: %w", err)
+	}
+
+	// Build subscription info string
+	var subscriptionInfo string
+	if topicID != "" {
+		subscriptionInfo = fmt.Sprintf("topic: %s", color.CyanString(topicID))
+	} else if appID != "" {
+		subscriptionInfo = fmt.Sprintf("app: %s, all topics", color.CyanString(appID))
+	} else if orgID != "" {
+		subscriptionInfo = fmt.Sprintf("org: %s, all applications", color.CyanString(orgID))
+	}
+	if endpointURL != nil {
+		subscriptionInfo += fmt.Sprintf(", forwarding to: %s", color.CyanString(endpointURL.String()))
+	}
+
+	fmt.Printf("Listening for events (%s)...\n", subscriptionInfo)
+	fmt.Println("Press Ctrl+C to stop\n")
+
+	// Create HTTP client with timeout for forwarding
+	httpClient := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	for {
+		event, err := stream.Recv()
+		if err != nil {
+			if ctx.Err() != nil {
+				return nil // Context cancelled
+			}
+			return fmt.Errorf("failed to receive event: %w", err)
 		}
 
+		printEvent(event, debug)
+
+		// Forward event to endpoint if provided
+		if endpointURL != nil {
+			go forwardEvent(httpClient, event, endpointURL)
+		}
+	}
+}
+
+var listenCmd = &cobra.Command{
+	Use:   "listen [endpoint-url]",
+	Short: "Listen to webhook events for the current organization",
+	Long:  `Listen to webhook events for all applications and topics in the current organization. Optionally forward events to an endpoint URL. Use --org-id to change the organization.`,
+	Args:  cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
 		// Parse and validate endpoint URL if provided
 		var endpointURL *url.URL
 		if len(args) > 0 {
@@ -48,80 +118,15 @@ var listenCmd = &cobra.Command{
 			endpointURL = parsedURL
 		}
 
-		cfg, err := config.Load()
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-
-		if cfg.Token == "" {
-			return fmt.Errorf("not authenticated. Run 'hookie login' first")
-		}
-
-		client, err := relay.NewClient(cfg.Token)
-		if err != nil {
-			return fmt.Errorf("failed to connect to relay: %w", err)
-		}
-		defer client.Close()
-
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		// Handle interrupt signals
-		sigChan := make(chan os.Signal, 1)
-		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-		go func() {
-			<-sigChan
-			fmt.Println("\nShutting down...")
-			cancel()
-		}()
-
 		// Use flag value if set, otherwise use global orgID
 		effectiveOrgID := orgIDFlag
 		if effectiveOrgID == "" {
 			effectiveOrgID = orgID
 		}
-		stream, err := client.Subscribe(ctx, appIDFlag, topicIDFlag, effectiveOrgID)
-		if err != nil {
-			return fmt.Errorf("failed to subscribe: %w", err)
-		}
 
-		subscriptionInfo := fmt.Sprintf("app: %s", color.CyanString(appIDFlag))
-		if topicIDFlag != "" {
-			subscriptionInfo += fmt.Sprintf(", topic: %s", color.CyanString(topicIDFlag))
-		} else {
-			subscriptionInfo += ", all topics"
-		}
-		if effectiveOrgID != "" {
-			subscriptionInfo += fmt.Sprintf(", org: %s", color.CyanString(effectiveOrgID))
-		}
-		if endpointURL != nil {
-			subscriptionInfo += fmt.Sprintf(", forwarding to: %s", color.CyanString(endpointURL.String()))
-		}
-
-		fmt.Printf("Listening for events (%s)...\n", subscriptionInfo)
-		fmt.Println("Press Ctrl+C to stop\n")
-
-		// Create HTTP client with timeout for forwarding
-		httpClient := &http.Client{
-			Timeout: 10 * time.Second,
-		}
-
-		for {
-			event, err := stream.Recv()
-			if err != nil {
-				if ctx.Err() != nil {
-					return nil // Context cancelled
-				}
-				return fmt.Errorf("failed to receive event: %w", err)
-			}
-
-			printEvent(event, debug)
-
-			// Forward event to endpoint if provided
-			if endpointURL != nil {
-				go forwardEvent(httpClient, event, endpointURL)
-			}
-		}
+		// If no org ID is provided, we need to get it from the token
+		// For now, we'll pass it to the backend which will use the token's org_id
+		return runListen("", "", effectiveOrgID, endpointURL)
 	},
 }
 
@@ -282,9 +287,7 @@ func forwardEvent(client *http.Client, event *proto.Event, baseURL *url.URL) {
 }
 
 func init() {
-	listenCmd.Flags().StringVar(&appIDFlag, "app-id", "", "Application ID (required)")
-	listenCmd.Flags().StringVar(&topicIDFlag, "topic-id", "", "Topic ID (optional, listens to all topics if not specified)")
-	listenCmd.Flags().StringVar(&orgIDFlag, "org-id", "", "Organization ID (optional, for org-owned applications)")
+	listenCmd.Flags().StringVar(&orgIDFlag, "org-id", "", "Organization ID (optional, uses token's org_id if not provided)")
 	rootCmd.AddCommand(listenCmd)
 }
 

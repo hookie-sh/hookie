@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 
 	"github.com/fatih/color"
@@ -13,12 +14,15 @@ import (
 )
 
 var topicsCmd = &cobra.Command{
-	Use:   "topics <app-id>",
-	Short: "List topics for an application",
-	Long:  `List all topics for a specific application.`,
-	Args:  cobra.ExactArgs(1),
+	Use:   "topics [app-id]",
+	Short: "List topics for an application or all topics across all applications",
+	Long:  `List all topics for a specific application, or all topics across all accessible applications if no app-id is provided.`,
+	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		appID := args[0]
+		var appID string
+		if len(args) > 0 {
+			appID = args[0]
+		}
 
 		cfg, err := config.Load()
 		if err != nil {
@@ -41,23 +45,43 @@ var topicsCmd = &cobra.Command{
 		}
 
 		if len(topics) == 0 {
-			fmt.Printf("No topics found for application %s.\n", appID)
+			if appID != "" {
+				fmt.Printf("No topics found for application %s.\n", appID)
+			} else {
+				fmt.Println("No topics found.")
+			}
 			return nil
 		}
 
 		table := tablewriter.NewWriter(os.Stdout)
-		table.Header("ID", "NAME", "DESCRIPTION")
+		
+		// Include APP ID column when listing all topics (appID is empty)
+		if appID == "" {
+			table.Header("ID", "APP ID", "NAME", "DESCRIPTION")
+		} else {
+			table.Header("ID", "NAME", "DESCRIPTION")
+		}
 
 		for _, topic := range topics {
 			desc := topic.Description
 			if len(desc) > 50 {
 				desc = desc[:47] + "..."
 			}
-			table.Append(
-				color.CyanString(topic.Id),
-				topic.Name,
-				desc,
-			)
+			
+			if appID == "" {
+				table.Append(
+					color.CyanString(topic.Id),
+					color.YellowString(topic.ApplicationId),
+					topic.Name,
+					desc,
+				)
+			} else {
+				table.Append(
+					color.CyanString(topic.Id),
+					topic.Name,
+					desc,
+				)
+			}
 		}
 		table.Render()
 
@@ -65,7 +89,33 @@ var topicsCmd = &cobra.Command{
 	},
 }
 
+var topicsListenCmd = &cobra.Command{
+	Use:   "listen [topic-id] [endpoint-url]",
+	Short: "Listen to webhook events for a topic",
+	Long:  `Listen to webhook events for a specific topic. Optionally forward events to an endpoint URL.`,
+	Args:  cobra.RangeArgs(1, 2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		topicID := args[0]
+
+		// Parse and validate endpoint URL if provided
+		var endpointURL *url.URL
+		if len(args) > 1 {
+			parsedURL, err := url.Parse(args[1])
+			if err != nil {
+				return fmt.Errorf("invalid endpoint URL: %w", err)
+			}
+			if parsedURL.Scheme == "" || parsedURL.Host == "" {
+				return fmt.Errorf("invalid endpoint URL: must include scheme and host (e.g., http://localhost:3001/webhooks)")
+			}
+			endpointURL = parsedURL
+		}
+
+		return runListen(topicID, "", "", endpointURL)
+	},
+}
+
 func init() {
+	topicsCmd.AddCommand(topicsListenCmd)
 	rootCmd.AddCommand(topicsCmd)
 }
 

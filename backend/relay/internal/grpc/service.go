@@ -73,6 +73,22 @@ func (s *Service) Subscribe(req *proto.SubscribeRequest, stream proto.RelayServi
 		return err
 	}
 
+	// Validate that exactly one of topic_id, app_id, or org_id is provided
+	// OR all are empty (which means org-level subscription using token's org_id)
+	provided := 0
+	if req.TopicId != "" {
+		provided++
+	}
+	if req.AppId != "" {
+		provided++
+	}
+	if req.OrgId != "" {
+		provided++
+	}
+	if provided != 1 && provided != 0 {
+		return status.Error(codes.InvalidArgument, "exactly one of topic_id, app_id, or org_id must be provided")
+	}
+
 	// Use org_id from request if provided, otherwise use from token
 	orgID := req.OrgId
 	if orgID == "" {
@@ -83,7 +99,7 @@ func (s *Service) Subscribe(req *proto.SubscribeRequest, stream proto.RelayServi
 	var topicIDs []string
 
 	if req.TopicId != "" {
-		// Topic ID provided - look up application_id from topic
+		// Topic ID provided - subscribe to a specific topic
 		appID, err = s.supabase.GetTopicApplicationID(ctx, req.TopicId)
 		if err != nil {
 			return status.Error(codes.NotFound, fmt.Sprintf("topic not found: %v", err))
@@ -100,12 +116,9 @@ func (s *Service) Subscribe(req *proto.SubscribeRequest, stream proto.RelayServi
 		}
 
 		topicIDs = []string{req.TopicId}
-	} else {
-		// No topic ID - subscribe to all topics for the application
+	} else if req.AppId != "" {
+		// App ID provided - subscribe to all topics for the application
 		appID = req.AppId
-		if appID == "" {
-			return status.Error(codes.InvalidArgument, "app_id is required when topic_id is not specified")
-		}
 
 		// Verify user has access to the application
 		if err := s.supabase.VerifyApplicationAccess(ctx, tokenInfo.UserID, appID, orgID); err != nil {
@@ -134,6 +147,97 @@ func (s *Service) Subscribe(req *proto.SubscribeRequest, stream proto.RelayServi
 		for _, topic := range topics {
 			topicIDs = append(topicIDs, topic.ID)
 		}
+	} else {
+		// Org-level subscription - subscribe to all applications and topics in the organization
+		// orgID is already set above (from request or token)
+		
+		if orgID == "" {
+			return status.Error(codes.InvalidArgument, "organization ID is required for org-level subscription")
+		}
+
+		// Query all applications for the org
+		var applications []struct {
+			ID string `json:"id"`
+		}
+
+		data, _, err := s.supabase.GetClient().From("applications").
+			Select("id", "exact", false).
+			Eq("org_id", orgID).
+			Execute()
+
+		if err != nil {
+			return status.Error(codes.Internal, fmt.Sprintf("failed to fetch applications: %v", err))
+		}
+
+		if err := json.Unmarshal(data, &applications); err != nil {
+			return status.Error(codes.Internal, fmt.Sprintf("failed to parse applications: %v", err))
+		}
+
+		if len(applications) == 0 {
+			return status.Error(codes.NotFound, fmt.Sprintf("no applications found for organization %s", orgID))
+		}
+
+		// Verify user has access to at least one application in the org
+		hasAccess := false
+		for _, app := range applications {
+			if err := s.supabase.VerifyApplicationAccess(ctx, tokenInfo.UserID, app.ID, orgID); err == nil {
+				hasAccess = true
+				break
+			}
+		}
+		if !hasAccess {
+			return status.Error(codes.PermissionDenied, fmt.Sprintf("access denied: user does not have access to organization %s", orgID))
+		}
+
+		// Collect all application IDs
+		appIDs := make([]string, 0, len(applications))
+		for _, app := range applications {
+			appIDs = append(appIDs, app.ID)
+		}
+
+		// Query all topics for all applications in the org
+		var allTopics []struct {
+			ID string `json:"id"`
+		}
+
+		for _, appID := range appIDs {
+			// Verify access before including topics
+			if err := s.supabase.VerifyApplicationAccess(ctx, tokenInfo.UserID, appID, orgID); err != nil {
+				continue // Skip apps user doesn't have access to
+			}
+
+			data, _, err := s.supabase.GetClient().From("topics").
+				Select("id", "exact", false).
+				Eq("application_id", appID).
+				Execute()
+
+			if err != nil {
+				log.Printf("Warning: failed to fetch topics for application %s: %v", appID, err)
+				continue
+			}
+
+			var topics []struct {
+				ID string `json:"id"`
+			}
+			if err := json.Unmarshal(data, &topics); err != nil {
+				log.Printf("Warning: failed to parse topics for application %s: %v", appID, err)
+				continue
+			}
+
+			allTopics = append(allTopics, topics...)
+		}
+
+		topicIDs = make([]string, 0, len(allTopics))
+		for _, topic := range allTopics {
+			topicIDs = append(topicIDs, topic.ID)
+		}
+
+		if len(topicIDs) == 0 {
+			return status.Error(codes.NotFound, fmt.Sprintf("no topics found for organization %s", orgID))
+		}
+
+		// For org-level subscriptions, appID is empty (represents multiple apps)
+		appID = ""
 	}
 
 	// Create event channel
@@ -402,28 +506,33 @@ func (s *Service) ListTopics(ctx context.Context, req *proto.ListTopicsRequest) 
 	}
 
 	appID := req.AppId
-	if appID == "" {
-		return nil, status.Error(codes.InvalidArgument, "app_id is required")
+
+	// If app_id is provided, verify user has access to the application
+	if appID != "" {
+		if err := s.supabase.VerifyApplicationAccess(ctx, tokenInfo.UserID, appID, tokenInfo.OrgID); err != nil {
+			return nil, status.Error(codes.PermissionDenied, fmt.Sprintf("access denied: %v", err))
+		}
 	}
 
-	// Verify user has access to the application
-	if err := s.supabase.VerifyApplicationAccess(ctx, tokenInfo.UserID, appID, tokenInfo.OrgID); err != nil {
-		return nil, status.Error(codes.PermissionDenied, fmt.Sprintf("access denied: %v", err))
-	}
-
-	// Query topics for the application
+	// Query topics - RLS will automatically filter to only accessible topics
 	var topics []struct {
-		ID          string `json:"id"`
-		Name        string `json:"name"`
-		Description string `json:"description"`
-		CreatedAt   string `json:"created_at"`
-		UpdatedAt   string `json:"updated_at"`
+		ID            string `json:"id"`
+		Name          string `json:"name"`
+		Description   string `json:"description"`
+		ApplicationID string `json:"application_id"`
+		CreatedAt     string `json:"created_at"`
+		UpdatedAt     string `json:"updated_at"`
 	}
 
-	data, _, err := s.supabase.GetClient().From("topics").
-		Select("id,name,description,created_at,updated_at", "exact", false).
-		Eq("application_id", appID).
-		Execute()
+	query := s.supabase.GetClient().From("topics").
+		Select("id,name,description,application_id,created_at,updated_at", "exact", false)
+
+	// If app_id is provided, filter by it
+	if appID != "" {
+		query = query.Eq("application_id", appID)
+	}
+
+	data, _, err := query.Execute()
 
 	if err != nil {
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to fetch topics: %v", err))
@@ -440,11 +549,12 @@ func (s *Service) ListTopics(ctx context.Context, req *proto.ListTopicsRequest) 
 		updatedAt := s.parseTimestampFromISO(topic.UpdatedAt)
 
 		protoTopics = append(protoTopics, &proto.Topic{
-			Id:          topic.ID,
-			Name:        topic.Name,
-			Description: topic.Description,
-			CreatedAt:   createdAt,
-			UpdatedAt:   updatedAt,
+			Id:            topic.ID,
+			Name:          topic.Name,
+			Description:   topic.Description,
+			CreatedAt:     createdAt,
+			UpdatedAt:     updatedAt,
+			ApplicationId: topic.ApplicationID,
 		})
 	}
 

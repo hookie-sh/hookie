@@ -12,19 +12,25 @@ service RelayService {
   // List applications for the authenticated user
   rpc ListApplications(ListApplicationsRequest) returns (ListApplicationsResponse);
   
-  // List topics for a specific application
+  // List topics for a specific application, or all topics across all accessible applications
   rpc ListTopics(ListTopicsRequest) returns (ListTopicsResponse);
 }
 
 // Request to subscribe to events
+// Exactly one of app_id, topic_id, or org_id must be provided:
+// - topic_id: Subscribe to events for a specific topic
+// - app_id: Subscribe to events for all topics in an application
+// - org_id: Subscribe to events for all applications and topics in an organization
 message SubscribeRequest {
-  // Application ID (required)
+  // Application ID (optional, mutually exclusive with topic_id and org_id)
   string app_id = 1;
   
-  // Optional: specific topic ID to subscribe to. If empty, subscribes to all topics for the application
+  // Topic ID (optional, mutually exclusive with app_id and org_id)
+  // If provided, subscribes to events for this specific topic
   string topic_id = 2;
   
-  // Optional: organization ID context (for filtering/verification)
+  // Organization ID (optional, mutually exclusive with app_id and topic_id)
+  // If provided, subscribes to events for all applications and topics in this organization
   string org_id = 3;
 }
 
@@ -90,7 +96,7 @@ message Application {
 
 // Request to list topics
 message ListTopicsRequest {
-  // Application ID
+  // Optional: Application ID. If not provided, returns all topics across all accessible applications
   string app_id = 1;
 }
 
@@ -106,6 +112,7 @@ message Topic {
   string description = 3;
   int64 created_at = 4;
   int64 updated_at = 5;
+  string application_id = 6;
 }
 
 
