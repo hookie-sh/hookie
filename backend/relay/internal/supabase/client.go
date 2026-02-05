@@ -121,3 +121,26 @@ func (c *Client) VerifyTopicAccess(ctx context.Context, userID, appID, topicID, 
 	return nil
 }
 
+// GetTopicApplicationID looks up the application_id for a given topic
+func (c *Client) GetTopicApplicationID(ctx context.Context, topicID string) (string, error) {
+	var result struct {
+		ApplicationID string `json:"application_id"`
+	}
+
+	data, _, err := c.client.From("topics").
+		Select("application_id", "exact", false).
+		Eq("id", topicID).
+		Single().
+		Execute()
+
+	if err != nil {
+		return "", fmt.Errorf("topic not found: %w", err)
+	}
+
+	if err := json.Unmarshal(data, &result); err != nil {
+		return "", fmt.Errorf("failed to parse topic data: %w", err)
+	}
+
+	return result.ApplicationID, nil
+}
+

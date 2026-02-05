@@ -84,7 +84,7 @@ The deployment will:
 
 4. **Test webhook endpoint:**
    ```bash
-   curl -X POST https://your-ingest-app-name.fly.dev/webhooks/test-app/test-topic \
+   curl -X POST https://your-ingest-app-name.fly.dev/webhooks/test-topic \
      -H "Content-Type: application/json" \
      -d '{"test": "data"}'
    ```
@@ -95,10 +95,10 @@ The deployment will:
 After deployment, your webhook URLs will be:
 
 ```
-https://your-ingest-app-name.fly.dev/webhooks/{appId}/{topicId}
+https://your-ingest-app-name.fly.dev/webhooks/{topicId}
 ```
 
-Replace `{appId}` and `{topicId}` with your actual application and topic IDs.
+Replace `{topicId}` with your actual topic ID.
 
 ## Fly.io Configuration Details
 

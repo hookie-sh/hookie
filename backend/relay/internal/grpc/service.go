@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -72,26 +73,66 @@ func (s *Service) Subscribe(req *proto.SubscribeRequest, stream proto.RelayServi
 		return err
 	}
 
-	appID := req.AppId
-	if appID == "" {
-		return status.Error(codes.InvalidArgument, "app_id is required")
-	}
-
 	// Use org_id from request if provided, otherwise use from token
 	orgID := req.OrgId
 	if orgID == "" {
 		orgID = tokenInfo.OrgID
 	}
 
-	// Verify user has access to the application
-	if err := s.supabase.VerifyApplicationAccess(ctx, tokenInfo.UserID, appID, orgID); err != nil {
-		return status.Error(codes.PermissionDenied, fmt.Sprintf("access denied: %v", err))
-	}
+	var appID string
+	var topicIDs []string
 
-	// If topic_id is specified, verify access to that topic too
 	if req.TopicId != "" {
+		// Topic ID provided - look up application_id from topic
+		appID, err = s.supabase.GetTopicApplicationID(ctx, req.TopicId)
+		if err != nil {
+			return status.Error(codes.NotFound, fmt.Sprintf("topic not found: %v", err))
+		}
+
+		// Verify user has access to the application
+		if err := s.supabase.VerifyApplicationAccess(ctx, tokenInfo.UserID, appID, orgID); err != nil {
+			return status.Error(codes.PermissionDenied, fmt.Sprintf("access denied: %v", err))
+		}
+
+		// Verify the topic belongs to the application (double-check)
 		if err := s.supabase.VerifyTopicAccess(ctx, tokenInfo.UserID, appID, req.TopicId, orgID); err != nil {
 			return status.Error(codes.PermissionDenied, fmt.Sprintf("access denied: %v", err))
+		}
+
+		topicIDs = []string{req.TopicId}
+	} else {
+		// No topic ID - subscribe to all topics for the application
+		appID = req.AppId
+		if appID == "" {
+			return status.Error(codes.InvalidArgument, "app_id is required when topic_id is not specified")
+		}
+
+		// Verify user has access to the application
+		if err := s.supabase.VerifyApplicationAccess(ctx, tokenInfo.UserID, appID, orgID); err != nil {
+			return status.Error(codes.PermissionDenied, fmt.Sprintf("access denied: %v", err))
+		}
+
+		// Query all topics for the application
+		var topics []struct {
+			ID string `json:"id"`
+		}
+
+		data, _, err := s.supabase.GetClient().From("topics").
+			Select("id", "exact", false).
+			Eq("application_id", appID).
+			Execute()
+
+		if err != nil {
+			return status.Error(codes.Internal, fmt.Sprintf("failed to fetch topics: %v", err))
+		}
+
+		if err := json.Unmarshal(data, &topics); err != nil {
+			return status.Error(codes.Internal, fmt.Sprintf("failed to parse topics: %v", err))
+		}
+
+		topicIDs = make([]string, 0, len(topics))
+		for _, topic := range topics {
+			topicIDs = append(topicIDs, topic.ID)
 		}
 	}
 
@@ -104,10 +145,10 @@ func (s *Service) Subscribe(req *proto.SubscribeRequest, stream proto.RelayServi
 	defer cancel()
 
 	var subscribeErr error
-	if req.TopicId != "" {
-		subscribeErr = s.subscriber.SubscribeToTopic(appID, req.TopicId, eventsCh)
+	if len(topicIDs) == 1 {
+		subscribeErr = s.subscriber.SubscribeToTopic(topicIDs[0], eventsCh)
 	} else {
-		subscribeErr = s.subscriber.SubscribeToApplication(appID, eventsCh)
+		subscribeErr = s.subscriber.SubscribeToApplication(topicIDs, eventsCh)
 	}
 
 	if subscribeErr != nil {
@@ -134,7 +175,11 @@ func (s *Service) Subscribe(req *proto.SubscribeRequest, stream proto.RelayServi
 			}
 
 			// Convert Redis event to proto Event
-			protoEvent := s.convertToProtoEvent(event, appID)
+			protoEvent, err := s.convertToProtoEvent(ctx, event)
+			if err != nil {
+				log.Printf("Error converting event: %v", err)
+				continue // Skip this event but continue processing
+			}
 			if err := stream.Send(protoEvent); err != nil {
 				log.Printf("Error sending event to client %s: %v", clientID, err)
 				return err
@@ -143,18 +188,23 @@ func (s *Service) Subscribe(req *proto.SubscribeRequest, stream proto.RelayServi
 	}
 }
 
-func (s *Service) convertToProtoEvent(event redis.StreamEvent, appID string) *proto.Event {
-	// Extract app_id and topic_id from stream key: webhook:events:{appId}:{topicId}
-	parts := make([]string, 0, 4)
-	for _, part := range []string{"webhook", "events", "", ""} {
-		parts = append(parts, part)
-	}
-	
+func (s *Service) convertToProtoEvent(ctx context.Context, event redis.StreamEvent) (*proto.Event, error) {
+	// Parse stream key to extract topic_id: webhook:events:{topicId}
 	streamKey := event.StreamKey
-	// Parse stream key to extract topic_id
-	var topicID string
-	if len(streamKey) > len("webhook:events:"+appID+":") {
-		topicID = streamKey[len("webhook:events:"+appID+":"):]
+	prefix := "webhook:events:"
+	if !strings.HasPrefix(streamKey, prefix) {
+		return nil, fmt.Errorf("invalid stream key format: %s", streamKey)
+	}
+
+	topicID := streamKey[len(prefix):]
+	if topicID == "" {
+		return nil, fmt.Errorf("topic ID not found in stream key: %s", streamKey)
+	}
+
+	// Look up application_id from topic
+	appID, err := s.supabase.GetTopicApplicationID(ctx, topicID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get application ID for topic %s: %w", topicID, err)
 	}
 
 	return &proto.Event{
@@ -170,7 +220,7 @@ func (s *Service) convertToProtoEvent(event redis.StreamEvent, appID string) *pr
 		Timestamp:     s.parseTimestamp(event.Fields["timestamp"]),
 		AppId:         appID,
 		TopicId:       topicID,
-	}
+	}, nil
 }
 
 func (s *Service) parseTimestamp(ts string) int64 {

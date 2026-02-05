@@ -24,10 +24,9 @@ func NewWebhookHandler(redisClient *redis.Client) *WebhookHandler {
 }
 
 func (h *WebhookHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) {
-	appId := r.PathValue("appId")
 	topicId := r.PathValue("topicId")
 
-	if appId == "" || topicId == "" {
+	if topicId == "" {
 		h.respondError(w, http.StatusBadRequest, "Invalid path parameters")
 		return
 	}
@@ -68,7 +67,7 @@ func (h *WebhookHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 		contentLength = fmt.Sprintf("%d", len(body))
 	}
 
-	streamKey := fmt.Sprintf("webhook:events:%s:%s", appId, topicId)
+	streamKey := fmt.Sprintf("webhook:events:%s", topicId)
 
 	fields := map[string]interface{}{
 		"method":         r.Method,
@@ -81,7 +80,6 @@ func (h *WebhookHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 		"content_length": contentLength,
 		"remote_addr":    remoteAddr,
 		"timestamp":      time.Now().UnixNano(),
-		"app_id":         appId,
 		"topic_id":       topicId,
 	}
 

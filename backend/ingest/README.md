@@ -4,7 +4,7 @@ A Go-based webhook ingestion service that receives webhook payloads and publishe
 
 ## Features
 
-- Accepts webhook requests via `/webhooks/{appId}/{topicId}` endpoint
+- Accepts webhook requests via `/webhooks/{topicId}` endpoint
 - Supports all HTTP methods (GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD)
 - Captures complete request context for replay:
   - HTTP method, URL, path, query parameters
@@ -44,13 +44,12 @@ go run main.go
 
 ## API
 
-### POST /webhooks/{appId}/{topicId}
+### POST /webhooks/{topicId}
 
 Accepts webhook payloads and publishes them to Redis Streams.
 
 **Path Parameters:**
 
-- `appId` - Application identifier
 - `topicId` - Topic identifier
 
 **Request:**
@@ -86,7 +85,7 @@ Accepts webhook payloads and publishes them to Redis Streams.
 Events are published to Redis Streams with the key format:
 
 ```
-webhook:events:{appId}:{topicId}
+webhook:events:{topicId}
 ```
 
 Each stream entry contains the following fields:
@@ -101,7 +100,6 @@ Each stream entry contains the following fields:
 - `content_length` - Content-Length header value
 - `remote_addr` - Client IP address
 - `timestamp` - Unix timestamp in nanoseconds
-- `app_id` - Application ID from URL path
 - `topic_id` - Topic ID from URL path
 
 This format ensures complete request reconstruction for downstream services.

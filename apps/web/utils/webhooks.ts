@@ -1,7 +1,4 @@
-export function generateWebhookUrl(
-  applicationId: string,
-  topicId: string,
-): string {
+export function generateWebhookUrl(topicId: string): string {
   const url = process.env.NEXT_PUBLIC_INGEST_BASE_URL;
-  return `${url}/webhooks/${applicationId}/${topicId}`;
+  return `${url}/webhooks/${topicId}`;
 }

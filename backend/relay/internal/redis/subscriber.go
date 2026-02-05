@@ -65,15 +65,38 @@ type StreamEvent struct {
 }
 
 // SubscribeToApplication subscribes to all topics for an application
-// Returns a channel that receives events matching the pattern webhook:events:{appId}:*
-func (s *Subscriber) SubscribeToApplication(appID string, eventsChan chan<- StreamEvent) error {
-	pattern := fmt.Sprintf("webhook:events:%s:*", appID)
-	return s.subscribeToPattern(pattern, eventsChan)
+// topicIDs should be a list of topic IDs that belong to the application
+func (s *Subscriber) SubscribeToApplication(topicIDs []string, eventsChan chan<- StreamEvent) error {
+	if len(topicIDs) == 0 {
+		return nil
+	}
+
+	streamKeys := make([]string, 0, len(topicIDs))
+	for _, topicID := range topicIDs {
+		streamKey := fmt.Sprintf("webhook:events:%s", topicID)
+		streamKeys = append(streamKeys, streamKey)
+	}
+
+	// Create consumer group for each stream
+	consumerGroup := "relay-consumers"
+	consumerName := fmt.Sprintf("consumer-%d", time.Now().UnixNano())
+
+	for _, streamKey := range streamKeys {
+		err := s.client.XGroupCreateMkStream(s.ctx, streamKey, consumerGroup, "0").Err()
+		if err != nil && !strings.Contains(err.Error(), "BUSYGROUP") {
+			log.Printf("Warning: failed to create consumer group for %s: %v", streamKey, err)
+		}
+	}
+
+	// Start reading from all streams
+	go s.readFromStreams(streamKeys, consumerGroup, consumerName, eventsChan)
+
+	return nil
 }
 
-// SubscribeToTopic subscribes to a specific application/topic combination
-func (s *Subscriber) SubscribeToTopic(appID, topicID string, eventsChan chan<- StreamEvent) error {
-	streamKey := fmt.Sprintf("webhook:events:%s:%s", appID, topicID)
+// SubscribeToTopic subscribes to a specific topic
+func (s *Subscriber) SubscribeToTopic(topicID string, eventsChan chan<- StreamEvent) error {
+	streamKey := fmt.Sprintf("webhook:events:%s", topicID)
 	return s.subscribeToStream(streamKey, eventsChan)
 }
 

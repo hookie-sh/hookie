@@ -43,7 +43,7 @@ func main() {
 	})
 	
 	// Webhook endpoint - register all HTTP methods
-	mux.HandleFunc("/webhooks/{appId}/{topicId}", webhookHandler.HandleWebhook)
+	mux.HandleFunc("/webhooks/{topicId}", webhookHandler.HandleWebhook)
 
 	handler := middleware.Logger(mux)
 

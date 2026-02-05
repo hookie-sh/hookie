@@ -1,9 +1,9 @@
 "use client";
 
-import { mutate } from "swr";
-import { Card, CardContent } from "@hookie/ui/components/card";
-import { TopicCard } from "../card";
 import { generateWebhookUrl } from "@/utils/webhooks";
+import { Card, CardContent } from "@hookie/ui/components/card";
+import { mutate } from "swr";
+import { TopicCard } from "../card";
 
 interface Topic {
   id: string;
@@ -45,7 +45,7 @@ export function TopicsList({
         (current: Topic[] | undefined) => {
           return current ? current.filter((t) => t.id !== topicId) : [];
         },
-        false,
+        false
       );
 
       // Revalidate to confirm with server
@@ -100,7 +100,7 @@ export function TopicsList({
           id={topic.id}
           name={topic.name}
           description={topic.description}
-          webhookUrl={generateWebhookUrl(applicationId, topic.id)}
+          webhookUrl={generateWebhookUrl(topic.id)}
           onCopy={() => {
             // Toast notification could be added here
             console.log("Copied to clipboard");
