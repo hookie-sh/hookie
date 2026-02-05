@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -36,6 +37,12 @@ func NewClient(addr string) (*Client, error) {
 		opts.Username = username
 	}
 
+	// Configure connection pool for high concurrency
+	opts.PoolSize = 100 // Default is 10 * numCPU, but we want more for high load
+	opts.MinIdleConns = 10
+	opts.MaxRetries = 3
+	opts.PoolTimeout = 4 * time.Second
+
 	rdb := redis.NewClient(opts)
 
 	ctx := context.Background()
@@ -47,6 +54,7 @@ func NewClient(addr string) (*Client, error) {
 	if opts.DB > 0 {
 		log.Printf("Using Redis database %d", opts.DB)
 	}
+	log.Printf("Redis pool config: PoolSize=%d, MinIdleConns=%d, PoolTimeout=%v", opts.PoolSize, opts.MinIdleConns, opts.PoolTimeout)
 
 	return &Client{client: rdb}, nil
 }
