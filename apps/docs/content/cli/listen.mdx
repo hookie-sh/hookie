@@ -1,0 +1,230 @@
+---
+title: Listen
+description: Stream webhook events in real-time for applications and topics
+---
+
+The `listen` command streams webhook events in real-time from Hookie. You can listen to all topics for an application or filter by a specific topic. Events can optionally be forwarded to a local endpoint.
+
+## Basic Usage
+
+Listen to all topics for an application:
+
+```bash
+hookie listen --app-id <app-id>
+```
+
+### Required Flags
+
+- `--app-id <app-id>` - **Required.** The application ID (obtained from `hookie apps`)
+
+### Example
+
+```bash
+hookie listen --app-id app_123
+```
+
+### Example Output
+
+```
+Listening for events (app: app_123, all topics)...
+Press Ctrl+C to stop
+
+2024-01-15T10:30:45Z [app_123] POST /webhooks/payment (topic: payments)
+2024-01-15T10:30:46Z [app_123] GET /webhooks/status (topic: health)
+2024-01-15T10:30:47Z [app_123] POST /webhooks/subscription (topic: subscriptions)
+```
+
+Each event shows:
+
+- **Timestamp** - When the event occurred (RFC3339 format)
+- **Application ID** - The application that received the webhook
+- **HTTP Method** - The HTTP method (GET, POST, etc.)
+- **Path** - The webhook path
+- **Topic** - The topic the event belongs to (if applicable)
+
+## Filter by Topic
+
+Listen to events for a specific topic:
+
+```bash
+hookie listen --app-id <app-id> --topic-id <topic-id>
+```
+
+### Example
+
+```bash
+hookie listen --app-id app_123 --topic-id payments
+```
+
+### Example Output
+
+```
+Listening for events (app: app_123, topic: payments)...
+Press Ctrl+C to stop
+
+2024-01-15T10:30:45Z [app_123] POST /webhooks/payment (topic: payments)
+2024-01-15T10:30:48Z [app_123] POST /webhooks/payment (topic: payments)
+```
+
+## Organization-Owned Applications
+
+For applications owned by an organization, specify the organization ID:
+
+```bash
+hookie listen --app-id <app-id> --org-id <org-id>
+```
+
+You can also set the organization ID globally:
+
+```bash
+hookie --org-id <org-id> listen --app-id <app-id>
+```
+
+## Debug Mode
+
+Enable detailed output including headers, query parameters, and request body:
+
+```bash
+hookie listen --app-id <app-id> --debug
+```
+
+Or use the short form:
+
+```bash
+hookie listen --app-id <app-id> -d
+```
+
+### Debug Output Example
+
+```
+2024-01-15T10:30:45Z [app_123] POST /webhooks/payment (topic: payments)
+  Headers:
+    Content-Type: application/json
+    User-Agent: Stripe/1.0
+    X-Request-ID: req_abc123
+  Query:
+    version: 2023-10-16
+  Body:
+    {
+      "id": "evt_123",
+      "type": "payment_intent.succeeded",
+      "data": {
+        "object": {
+          "amount": 2000,
+          "currency": "usd"
+        }
+      }
+    }
+```
+
+## Forward Events to Local Endpoint
+
+Forward received events to a local HTTP endpoint:
+
+```bash
+hookie listen --app-id <app-id> <endpoint-url>
+```
+
+### Example
+
+```bash
+hookie listen --app-id app_123 http://localhost:3001/webhooks
+```
+
+The CLI will:
+
+1. Receive events from Hookie
+2. Display them in the console
+3. Forward them to your local endpoint using the original HTTP method, headers, query parameters, and body
+
+### Forwarding Output
+
+When forwarding is enabled, you'll see additional output:
+
+```
+2024-01-15T10:30:45Z [app_123] POST /webhooks/payment (topic: payments)
+  → forwarded to http://localhost:3001/webhooks?version=2023-10-16 (status: 200)
+```
+
+If forwarding fails, you'll see an error:
+
+```
+2024-01-15T10:30:45Z [app_123] POST /webhooks/payment (topic: payments)
+  ✗ failed to forward: connection refused
+```
+
+### Endpoint URL Requirements
+
+The endpoint URL must:
+
+- Include a scheme (`http://` or `https://`)
+- Include a host (e.g., `localhost:3001`)
+- Be a valid URL
+
+Examples:
+
+- ✅ `http://localhost:3001/webhooks`
+- ✅ `https://example.com/api/webhooks`
+- ❌ `localhost:3001` (missing scheme)
+- ❌ `/webhooks` (missing scheme and host)
+
+## Multiple Listeners
+
+You can run multiple listeners simultaneously in separate terminals:
+
+```bash
+# Terminal 1: Listen to all topics for app_123
+hookie listen --app-id app_123
+
+# Terminal 2: Listen to payments topic only
+hookie listen --app-id app_123 --topic-id payments
+
+# Terminal 3: Listen to a different application
+hookie listen --app-id app_456
+```
+
+## Stopping the Listener
+
+Press `Ctrl+C` to stop listening. The CLI will gracefully shut down:
+
+```
+^C
+Shutting down...
+```
+
+## Event Forwarding Details
+
+When forwarding events, the CLI:
+
+- **Preserves HTTP method** - Uses the original method (GET, POST, etc.)
+- **Preserves headers** - Forwards all headers except `Host` (set automatically)
+- **Preserves query parameters** - Adds query parameters from the event to the endpoint URL
+- **Preserves body** - Forwards the original request body
+- **Sets Content-Type** - Uses the event's Content-Type header if available
+- **10-second timeout** - HTTP requests timeout after 10 seconds
+
+Forwarding happens asynchronously, so it won't block receiving new events.
+
+## Authentication Required
+
+You must be authenticated to listen to events. If you're not logged in, you'll see:
+
+```
+Error: not authenticated. Run 'hookie login' first
+```
+
+Run `hookie login` to authenticate.
+
+## Common Use Cases
+
+- **Local development** - Stream events to your development environment
+- **Debugging** - Use debug mode to inspect webhook payloads
+- **Testing** - Forward events to local test servers
+- **Monitoring** - Watch events in real-time across multiple applications
+- **Topic filtering** - Focus on specific event types
+
+## Related Commands
+
+- [Applications](/cli/applications) - Find application IDs
+- [Topics](/cli/topics) - Find topic IDs for filtering
+- [Authentication](/cli/authentication) - Manage your CLI session

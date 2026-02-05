@@ -43,12 +43,12 @@ function clerkElements(overrides: Partial<Record<string, string>> = {}) {
       organizationSwitcherPopoverActionButtonText: "text-foreground",
       organizationSwitcherPopoverFooter: "bg-background text-foreground",
     },
-    overrides
+    overrides,
   );
 }
 
 export default function clerkTheme(
-  elementsOverride: Partial<Record<string, string>> = {}
+  elementsOverride: Partial<Record<string, string>> = {},
 ): Theme {
   return {
     elements: clerkElements(elementsOverride),

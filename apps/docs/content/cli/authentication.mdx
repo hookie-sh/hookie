@@ -1,0 +1,87 @@
+---
+title: Authentication
+description: Login and logout commands for managing your Hookie CLI session
+---
+
+The Hookie CLI uses browser-based authentication to securely authenticate with the Hookie platform. Your credentials are stored locally and persist across sessions.
+
+## Login
+
+Authenticate with Hookie by opening a browser and completing the login flow.
+
+```bash
+hookie login
+```
+
+### How it Works
+
+1. The CLI starts a local server on an available port (preferred ports: 48443-48447)
+2. Your default browser opens to the Hookie web app authentication page
+3. After completing authentication in the browser, you're redirected back to the CLI
+4. The CLI receives and verifies your authentication token
+5. Your credentials are saved to `~/.hookie/config.json`
+
+### Example Output
+
+```
+============================================================
+Authorization required
+============================================================
+
+Starting local server on port 48443...
+Opening browser to complete authentication...
+
+Opening browser...
+Verifying token...
+✓ Authentication successful!
+✓ Successfully authenticated as user user_abc123
+```
+
+### Troubleshooting
+
+**Browser doesn't open automatically**
+
+If the browser fails to open automatically, the CLI will display the authorization URL. Simply copy and paste it into your browser:
+
+```
+Warning: Failed to open browser automatically: ...
+Please visit the URL manually: https://app.hookie.dev/cli?redirect_url=...
+```
+
+**Authorization timeout**
+
+If you don't complete authentication within 5 minutes, the CLI will timeout. Simply run `hookie login` again.
+
+**Port already in use**
+
+The CLI will automatically try alternative ports if the preferred ports are busy. If all ports fail, check for other processes using ports 48443-48447.
+
+## Logout
+
+Clear your stored authentication credentials.
+
+```bash
+hookie logout
+```
+
+This command removes the authentication token from `~/.hookie/config.json` and logs you out of the CLI.
+
+### Example Output
+
+```
+✓ Logged out successfully
+```
+
+After logging out, you'll need to run `hookie login` again to authenticate.
+
+## Token Management
+
+Authentication tokens are stored securely in `~/.hookie/config.json`. The token is used for all API requests to the Hookie relay service.
+
+**Note:** If your token expires or becomes invalid, you'll need to run `hookie login` again to refresh your credentials.
+
+## Next Steps
+
+- List your [applications](/cli/applications)
+- Explore [topics](/cli/topics) for your applications
+- Start [listening to events](/cli/listen)

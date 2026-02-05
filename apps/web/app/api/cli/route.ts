@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     if (!redirect_url) {
       return NextResponse.json(
         { error: "Missing redirect_url parameter" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     } catch {
       return NextResponse.json(
         { error: "Invalid redirect_url format" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "Invalid redirect_url. Only localhost is allowed." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     if (!token) {
       return NextResponse.json(
         { error: "Failed to create token" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     console.error("Error in POST /api/cli:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

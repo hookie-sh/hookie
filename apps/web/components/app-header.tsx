@@ -2,9 +2,9 @@
 
 import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
 import { Button } from "@hookie/ui/components/button";
+import { LogoWordmark } from "@hookie/ui/components/logo-wordmark";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogoWordmark } from "./logo-wordmark";
 
 export function AppHeader() {
   const pathname = usePathname();

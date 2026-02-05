@@ -1,7 +1,7 @@
-'use client'
+"use client";
 
-import { CreateApplicationForm } from '@/features/applications/components/client/create-application-form'
-import { ApplicationsList } from '@/features/applications/components/client/applications-list'
+import { CreateApplicationForm } from "@/features/applications/components/client/create-application-form";
+import { ApplicationsList } from "@/features/applications/components/client/applications-list";
 
 export default function ApplicationsPage() {
   return (
@@ -18,5 +18,5 @@ export default function ApplicationsPage() {
 
       <ApplicationsList />
     </main>
-  )
+  );
 }

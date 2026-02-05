@@ -1,31 +1,31 @@
-'use client'
+"use client";
 
-import { useParams } from 'next/navigation'
-import useSWR from 'swr'
-import Link from 'next/link'
-import { Button } from '@hookie/ui/components/button'
+import { useParams } from "next/navigation";
+import useSWR from "swr";
+import Link from "next/link";
+import { Button } from "@hookie/ui/components/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@hookie/ui/components/card'
-import { Separator } from '@hookie/ui/components/separator'
-import { ApplicationHeader } from '@/features/applications/components/client/application-header'
-import { ApplicationStats } from '@/features/applications/components/client/application-stats'
-import { TopicsSection } from '@/features/topics/components/client/topics-section'
-import { fetcher } from '@/utils/api'
+} from "@hookie/ui/components/card";
+import { Separator } from "@hookie/ui/components/separator";
+import { ApplicationHeader } from "@/features/applications/components/client/application-header";
+import { ApplicationStats } from "@/features/applications/components/client/application-stats";
+import { TopicsSection } from "@/features/topics/components/client/topics-section";
+import { fetcher } from "@/utils/api";
 
 interface Application {
-  id: string
-  name: string
-  description?: string
+  id: string;
+  name: string;
+  description?: string;
 }
 
 export default function ApplicationDetailPage() {
-  const params = useParams()
-  const applicationId = params.id as string
+  const params = useParams();
+  const applicationId = params.id as string;
 
   const {
     data: application,
@@ -38,8 +38,8 @@ export default function ApplicationDetailPage() {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       errorRetryCount: 3,
-    }
-  )
+    },
+  );
 
   const { data: topics } = useSWR<any[]>(
     applicationId ? `/api/applications/${applicationId}/topics` : null,
@@ -48,15 +48,15 @@ export default function ApplicationDetailPage() {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       errorRetryCount: 3,
-    }
-  )
+    },
+  );
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>
       </div>
-    )
+    );
   }
 
   if (error || !application) {
@@ -64,14 +64,14 @@ export default function ApplicationDetailPage() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <p className="text-destructive mb-4">
-            {error instanceof Error ? error.message : 'Application not found'}
+            {error instanceof Error ? error.message : "Application not found"}
           </p>
           <Link href="/applications">
             <Button variant="outline">Back to Applications</Button>
           </Link>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -102,5 +102,5 @@ export default function ApplicationDetailPage() {
         </CardContent>
       </Card>
     </main>
-  )
+  );
 }

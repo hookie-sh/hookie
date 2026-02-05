@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
 
   if (!WEBHOOK_SECRET) {
     throw new Error(
-      "Please add WEBHOOK_SECRET from Clerk Dashboard to .env or .env.local"
+      "Please add WEBHOOK_SECRET from Clerk Dashboard to .env or .env.local",
     );
   }
 
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
       },
       {
         status: 400,
-      }
+      },
     );
   }
 
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       },
       {
         status: 400,
-      }
+      },
     );
   }
 

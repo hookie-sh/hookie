@@ -24,6 +24,7 @@ A Go-based webhook ingestion service that receives webhook payloads and publishe
 ## Configuration
 
 Environment variables:
+
 - `PORT` - Server port (default: `4000`)
 - `REDIS_ADDR` - Redis connection address (default: `localhost:6379`)
 
@@ -48,20 +49,24 @@ go run main.go
 Accepts webhook payloads and publishes them to Redis Streams.
 
 **Path Parameters:**
+
 - `appId` - Application identifier
 - `topicId` - Topic identifier
 
 **Request:**
+
 - Accepts any HTTP method
 - Accepts any content type
 - Request body is read as-is (no validation)
 
 **Response:**
+
 - `200 OK` - Successfully published to Redis Stream
 - `400 Bad Request` - Invalid request (missing/invalid path parameters, body read failure)
 - `500 Internal Server Error` - Redis connection/publish failures
 
 **Success Response:**
+
 ```json
 {
   "status": "ok"
@@ -69,6 +74,7 @@ Accepts webhook payloads and publishes them to Redis Streams.
 ```
 
 **Error Response:**
+
 ```json
 {
   "error": "Brief error message"
@@ -78,11 +84,13 @@ Accepts webhook payloads and publishes them to Redis Streams.
 ## Redis Stream Format
 
 Events are published to Redis Streams with the key format:
+
 ```
 webhook:events:{appId}:{topicId}
 ```
 
 Each stream entry contains the following fields:
+
 - `method` - HTTP method
 - `url` - Full request URL including query parameters
 - `path` - Request path
@@ -97,4 +105,3 @@ Each stream entry contains the following fields:
 - `topic_id` - Topic ID from URL path
 
 This format ensures complete request reconstruction for downstream services.
-

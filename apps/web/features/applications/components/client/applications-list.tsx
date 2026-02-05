@@ -1,43 +1,43 @@
-'use client'
+"use client";
 
-import { useAuth } from '@clerk/nextjs'
-import useSWR from 'swr'
-import { ApplicationCard } from '../card'
-import { fetcher } from '@/utils/api'
+import { useAuth } from "@clerk/nextjs";
+import useSWR from "swr";
+import { ApplicationCard } from "../card";
+import { fetcher } from "@/utils/api";
 
 interface Application {
-  id: string
-  name: string
-  description?: string
-  topicCount: number
+  id: string;
+  name: string;
+  description?: string;
+  topicCount: number;
 }
 
 interface ApplicationsListProps {
-  error?: Error | null
+  error?: Error | null;
 }
 
 export function ApplicationsList({
   error: externalError,
 }: ApplicationsListProps) {
-  const { userId } = useAuth()
+  const { userId } = useAuth();
 
   const {
     data: applications,
     error,
     isLoading,
-  } = useSWR<Application[]>(userId ? '/api/applications' : null, fetcher, {
+  } = useSWR<Application[]>(userId ? "/api/applications" : null, fetcher, {
     revalidateOnFocus: false,
     revalidateOnReconnect: true,
-  })
+  });
 
-  const displayError = externalError || error
+  const displayError = externalError || error;
 
   if (isLoading) {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground">Loading applications...</p>
       </div>
-    )
+    );
   }
 
   if (displayError) {
@@ -45,9 +45,9 @@ export function ApplicationsList({
       <div className="mb-4 p-4 bg-destructive/10 text-destructive rounded-md">
         {displayError instanceof Error
           ? displayError.message
-          : 'Failed to load applications'}
+          : "Failed to load applications"}
       </div>
-    )
+    );
   }
 
   if (!applications || applications.length === 0) {
@@ -57,7 +57,7 @@ export function ApplicationsList({
           No applications yet. Create your first application to get started.
         </p>
       </div>
-    )
+    );
   }
 
   return (
@@ -70,5 +70,5 @@ export function ApplicationsList({
         />
       ))}
     </div>
-  )
+  );
 }

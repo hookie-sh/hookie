@@ -1,12 +1,12 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { Button } from '@hookie/ui/components/button'
-import { ArrowLeft } from 'lucide-react'
+import Link from "next/link";
+import { Button } from "@hookie/ui/components/button";
+import { ArrowLeft } from "lucide-react";
 
 interface ApplicationHeaderProps {
-  name: string
-  description?: string
+  name: string;
+  description?: string;
 }
 
 export function ApplicationHeader({
@@ -29,5 +29,5 @@ export function ApplicationHeader({
         {description && <p className="text-muted-foreground">{description}</p>}
       </div>
     </>
-  )
+  );
 }

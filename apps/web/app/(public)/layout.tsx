@@ -12,12 +12,3 @@ export default function PublicLayout({
     </div>
   );
 }
-
-
-
-
-
-
-
-
-

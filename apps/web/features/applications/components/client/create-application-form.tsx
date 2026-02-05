@@ -1,10 +1,10 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useForm, Controller } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { mutate } from 'swr'
-import { Button } from '@hookie/ui/components/button'
+import { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { mutate } from "swr";
+import { Button } from "@hookie/ui/components/button";
 import {
   Dialog,
   DialogContent,
@@ -13,32 +13,32 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@hookie/ui/components/dialog'
-import { Input } from '@hookie/ui/components/input'
-import { Label } from '@hookie/ui/components/label'
+} from "@hookie/ui/components/dialog";
+import { Input } from "@hookie/ui/components/input";
+import { Label } from "@hookie/ui/components/label";
 import {
   createApplicationSchema,
   type CreateApplicationInput,
-} from '../../schemas/application'
+} from "../../schemas/application";
 
 interface Application {
-  id: string
-  name: string
-  description?: string
-  topicCount: number
+  id: string;
+  name: string;
+  description?: string;
+  topicCount: number;
 }
 
 interface CreateApplicationFormProps {
-  onSuccess?: (application: Application) => void
-  onError?: (error: string) => void
+  onSuccess?: (application: Application) => void;
+  onError?: (error: string) => void;
 }
 
 export function CreateApplicationForm({
   onSuccess,
   onError,
 }: CreateApplicationFormProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [isOpen, setIsOpen] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
     control,
@@ -48,53 +48,53 @@ export function CreateApplicationForm({
   } = useForm<CreateApplicationInput>({
     resolver: zodResolver(createApplicationSchema),
     defaultValues: {
-      name: '',
-      description: '',
+      name: "",
+      description: "",
     },
-  })
+  });
 
   const onSubmit = async (data: CreateApplicationInput) => {
     try {
-      setSubmitError(null)
-      const response = await fetch('/api/applications', {
-        method: 'POST',
+      setSubmitError(null);
+      const response = await fetch("/api/applications", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
-      })
+      });
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to create application')
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create application");
       }
 
-      const newApp = await response.json()
+      const newApp = await response.json();
 
       // Optimistically update the cache, then revalidate
       mutate(
-        '/api/applications',
+        "/api/applications",
         (current: Application[] | undefined) => {
-          return current ? [newApp, ...current] : [newApp]
+          return current ? [newApp, ...current] : [newApp];
         },
-        false
-      )
+        false,
+      );
 
       // Revalidate to confirm with server
-      await mutate('/api/applications')
+      await mutate("/api/applications");
 
-      setIsOpen(false)
-      reset()
-      setSubmitError(null)
-      onSuccess?.(newApp)
+      setIsOpen(false);
+      reset();
+      setSubmitError(null);
+      onSuccess?.(newApp);
     } catch (err) {
-      console.error('Failed to create application:', err)
+      console.error("Failed to create application:", err);
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to create application'
-      setSubmitError(errorMessage)
-      onError?.(errorMessage)
+        err instanceof Error ? err.message : "Failed to create application";
+      setSubmitError(errorMessage);
+      onError?.(errorMessage);
     }
-  }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -159,11 +159,11 @@ export function CreateApplicationForm({
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Creating...' : 'Create'}
+              {isSubmitting ? "Creating..." : "Create"}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

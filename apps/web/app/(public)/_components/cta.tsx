@@ -1,12 +1,12 @@
-import { Button } from '@hookie/ui/components/button'
+import { Button } from "@hookie/ui/components/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@hookie/ui/components/card'
-import { Link } from 'lucide-react'
+} from "@hookie/ui/components/card";
+import { Link } from "lucide-react";
 
 export function CTA() {
   return (
@@ -27,5 +27,5 @@ export function CTA() {
         </CardContent>
       </Card>
     </section>
-  )
+  );
 }

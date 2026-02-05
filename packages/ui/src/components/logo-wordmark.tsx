@@ -1,5 +1,5 @@
 import type { SVGProps } from "react";
-import { cn } from "../../../packages/ui/src/lib/utils";
+import { cn } from "../lib/utils";
 
 export function LogoWordmark({ className }: SVGProps<SVGSVGElement>) {
   return (

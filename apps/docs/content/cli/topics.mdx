@@ -1,0 +1,87 @@
+---
+title: Topics
+description: List topics for a specific application
+---
+
+The `topics` command lists all topics configured for a specific application. Topics are used to categorize and filter webhook events.
+
+## Usage
+
+List topics for an application:
+
+```bash
+hookie topics <app-id>
+```
+
+### Arguments
+
+- `<app-id>` - **Required.** The application ID (obtained from `hookie apps`)
+
+### Example
+
+```bash
+hookie topics app_123
+```
+
+### Example Output
+
+```
++----------+------------------+------------------------------------------+
+| ID       | NAME             | DESCRIPTION                              |
++----------+------------------+------------------------------------------+
+| topic_1  | payments         | Payment-related webhook events           |
+| topic_2  | subscriptions    | Subscription lifecycle events            |
+| topic_3  | users            | User account events                       |
++----------+------------------+------------------------------------------+
+```
+
+The output shows:
+
+- **ID** - Topic identifier (use this with the `listen` command to filter events)
+- **NAME** - Topic name
+- **DESCRIPTION** - Topic description (truncated if longer than 50 characters)
+
+## Authentication Required
+
+You must be authenticated to list topics. If you're not logged in, you'll see:
+
+```
+Error: not authenticated. Run 'hookie login' first
+```
+
+Run `hookie login` to authenticate.
+
+## Finding Application IDs
+
+To find an application ID, use the `apps` command:
+
+```bash
+hookie apps
+```
+
+Then use the ID from the output:
+
+```bash
+hookie topics app_123
+```
+
+## Empty Results
+
+If an application has no topics configured, you'll see:
+
+```
+No topics found for application app_123.
+```
+
+## Use Cases
+
+- **Discover available topics** - See all topics configured for an application
+- **Find topic IDs** - Get the topic ID needed for filtering events in `listen`
+- **Understand event categories** - Review topic descriptions to understand what events are available
+- **Plan event subscriptions** - Identify which topics you want to listen to
+
+## Related Commands
+
+- [Applications](/cli/applications) - List all applications
+- [Listen](/cli/listen) - Stream events, optionally filtered by topic
+- [Authentication](/cli/authentication) - Manage your CLI session

@@ -1,8 +1,8 @@
-import { Plans } from '@/features/subscriptions/components/server/plans'
-import { Hero } from './_components/hero'
-import { Features } from './_components/features'
-import { CTA } from './_components/cta'
-import { Footer } from './_components/footer'
+import { Plans } from "@/features/subscriptions/components/server/plans";
+import { Hero } from "./_components/hero";
+import { Features } from "./_components/features";
+import { CTA } from "./_components/cta";
+import { Footer } from "./_components/footer";
 
 export default async function Home() {
   return (
@@ -26,5 +26,5 @@ export default async function Home() {
       <CTA />
       <Footer />
     </>
-  )
+  );
 }

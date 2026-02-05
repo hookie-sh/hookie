@@ -1,5 +1,5 @@
-import { Button } from '@hookie/ui/components/button'
-import Link from 'next/link'
+import { Button } from "@hookie/ui/components/button";
+import Link from "next/link";
 
 export function Hero() {
   return (
@@ -22,5 +22,5 @@ export function Hero() {
         </Link>
       </div>
     </section>
-  )
+  );
 }

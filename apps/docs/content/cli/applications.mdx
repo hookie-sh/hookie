@@ -1,0 +1,75 @@
+---
+title: Applications
+description: List and manage your Hookie applications
+---
+
+The `apps` command lists all applications accessible to the authenticated user. You can optionally filter by organization.
+
+## Basic Usage
+
+List all applications:
+
+```bash
+hookie apps
+```
+
+### Example Output
+
+```
++----------+------------------+--------+------------------------------------------+
+| ID       | NAME             | TOPICS | DESCRIPTION                              |
++----------+------------------+--------+------------------------------------------+
+| app_123  | My Webhook App   | 5      | Webhook receiver for payment events      |
+| app_456  | API Gateway      | 12     | Central API gateway for microservices   |
++----------+------------------+--------+------------------------------------------+
+```
+
+The output shows:
+
+- **ID** - Application identifier (use this with other commands)
+- **NAME** - Application name
+- **TOPICS** - Number of topics configured for this application
+- **DESCRIPTION** - Application description (truncated if longer than 50 characters)
+
+## Filter by Organization
+
+Filter applications by organization ID:
+
+```bash
+hookie apps --org-id <org-id>
+```
+
+You can also set the organization ID globally:
+
+```bash
+hookie --org-id <org-id> apps
+```
+
+### Example
+
+```bash
+hookie apps --org-id org_abc123
+```
+
+## Authentication Required
+
+You must be authenticated to list applications. If you're not logged in, you'll see:
+
+```
+Error: not authenticated. Run 'hookie login' first
+```
+
+Run `hookie login` to authenticate.
+
+## Use Cases
+
+- **Discover available applications** - See all applications you have access to
+- **Find application IDs** - Get the ID needed for other commands like `topics` and `listen`
+- **Check topic counts** - Quickly see how many topics each application has
+- **Filter by organization** - View only applications belonging to a specific organization
+
+## Related Commands
+
+- [Topics](/cli/topics) - List topics for a specific application
+- [Listen](/cli/listen) - Stream events from an application
+- [Authentication](/cli/authentication) - Manage your CLI session

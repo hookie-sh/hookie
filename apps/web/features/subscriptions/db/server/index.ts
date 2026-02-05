@@ -1,19 +1,19 @@
-import { SupabaseClient } from '@supabase/supabase-js'
-import { CreateSubscriptionInput } from '../../types'
+import { SupabaseClient } from "@supabase/supabase-js";
+import { CreateSubscriptionInput } from "../../types";
 
 export async function createSubscription(
   supabase: SupabaseClient,
-  data: CreateSubscriptionInput
+  data: CreateSubscriptionInput,
 ) {
   const { data: subscription, error } = await supabase
-    .from('subscriptions')
+    .from("subscriptions")
     .insert(data)
     .select()
-    .single()
+    .single();
 
   if (error) {
-    throw error
+    throw error;
   }
 
-  return subscription
+  return subscription;
 }

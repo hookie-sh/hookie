@@ -4,9 +4,9 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@hookie/ui/components/card'
-import { Input } from '@hookie/ui/components/input'
-import { Label } from '@hookie/ui/components/label'
+} from "@hookie/ui/components/card";
+import { Input } from "@hookie/ui/components/input";
+import { Label } from "@hookie/ui/components/label";
 
 export default function SettingsPage() {
   return (
@@ -57,5 +57,5 @@ export default function SettingsPage() {
         </div>
       </main>
     </>
-  )
+  );
 }

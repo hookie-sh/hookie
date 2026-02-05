@@ -7,5 +7,7 @@ packages:
 
 onlyBuiltDependencies:
   - '@clerk/shared'
+  - esbuild
   - sharp
   - supabase
+  - unrs-resolver

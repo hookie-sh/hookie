@@ -4,17 +4,17 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@hookie/ui/components/card'
-import { Button } from '@hookie/ui/components/button'
-import { Copy, Trash2 } from 'lucide-react'
+} from "@hookie/ui/components/card";
+import { Button } from "@hookie/ui/components/button";
+import { Copy, Trash2 } from "lucide-react";
 
 export interface TopicCardProps {
-  id: string
-  name: string
-  description?: string
-  webhookUrl: string
-  onCopy?: () => void
-  onDelete?: () => void
+  id: string;
+  name: string;
+  description?: string;
+  webhookUrl: string;
+  onCopy?: () => void;
+  onDelete?: () => void;
 }
 
 export function TopicCard({
@@ -26,9 +26,9 @@ export function TopicCard({
   onDelete,
 }: TopicCardProps) {
   const handleCopy = () => {
-    navigator.clipboard.writeText(webhookUrl)
-    onCopy?.()
-  }
+    navigator.clipboard.writeText(webhookUrl);
+    onCopy?.();
+  };
 
   return (
     <Card>
@@ -70,5 +70,5 @@ export function TopicCard({
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

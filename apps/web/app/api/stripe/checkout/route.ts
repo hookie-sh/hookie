@@ -1,38 +1,38 @@
-import { createCheckoutSession } from '@/features/products/db/server'
-import { checkoutSessionSchema } from '@/features/products/schemas/checkout-session'
-import { NextRequest, NextResponse } from 'next/server'
-import { ZodError } from 'zod'
-import { auth } from '@clerk/nextjs/server'
+import { createCheckoutSession } from "@/features/products/db/server";
+import { checkoutSessionSchema } from "@/features/products/schemas/checkout-session";
+import { NextRequest, NextResponse } from "next/server";
+import { ZodError } from "zod";
+import { auth } from "@clerk/nextjs/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth()
+    const { userId } = await auth();
 
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json()
+    const body = await req.json();
 
     // Validate input
-    const validatedData = checkoutSessionSchema.parse(body)
-    const { priceId } = validatedData
+    const validatedData = checkoutSessionSchema.parse(body);
+    const { priceId } = validatedData;
 
     if (!priceId) {
       return NextResponse.json(
-        { error: 'Price ID is required' },
-        { status: 400 }
-      )
+        { error: "Price ID is required" },
+        { status: 400 },
+      );
     }
 
     // Create checkout session
-    const session = await createCheckoutSession(priceId)
+    const session = await createCheckoutSession(priceId);
 
     if (!session.url) {
       return NextResponse.json(
-        { error: 'Failed to create checkout session URL' },
-        { status: 500 }
-      )
+        { error: "Failed to create checkout session URL" },
+        { status: 500 },
+      );
     }
 
     // console.log(session)
@@ -52,30 +52,30 @@ export async function POST(req: NextRequest) {
     //   subscribed: true,
     // })
 
-    return NextResponse.json({ url: session.url })
+    return NextResponse.json({ url: session.url });
   } catch (error) {
     // Handle Zod validation errors
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: 'Invalid input', details: error.issues },
-        { status: 400 }
-      )
+        { error: "Invalid input", details: error.issues },
+        { status: 400 },
+      );
     }
 
     // Handle Stripe errors
     if (error instanceof Error) {
-      console.error('Error creating checkout session:', error)
+      console.error("Error creating checkout session:", error);
       return NextResponse.json(
-        { error: error.message || 'Failed to create checkout session' },
-        { status: 500 }
-      )
+        { error: error.message || "Failed to create checkout session" },
+        { status: 500 },
+      );
     }
 
     // Handle unknown errors
-    console.error('Unknown error creating checkout session:', error)
+    console.error("Unknown error creating checkout session:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

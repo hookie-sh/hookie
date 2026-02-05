@@ -5,5 +5,5 @@ export function Footer() {
         <p>© 2025 Hookie. All rights reserved.</p>
       </div>
     </footer>
-  )
+  );
 }

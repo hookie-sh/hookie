@@ -1,0 +1,104 @@
+---
+title: CLI Overview
+description: Command-line tool for authenticating, listing applications/topics, and streaming webhook events in real-time
+---
+
+The Hookie CLI is a command-line tool that allows you to authenticate with Hookie, manage applications and topics, and stream webhook events in real-time.
+
+## Installation
+
+Install the Hookie CLI using your preferred package manager:
+
+<Tabs items={['pnpm', 'npm', 'bun']}>
+  <Tab value="pnpm">
+
+```bash
+pnpm add -g @hookie/cli
+```
+
+  </Tab>
+  <Tab value="npm">
+
+```bash
+npm install -g @hookie/cli
+```
+
+  </Tab>
+  <Tab value="bun">
+
+```bash
+bun install -g @hookie/cli
+```
+
+  </Tab>
+</Tabs>
+
+After installation, verify it's working:
+
+```bash
+hookie --version
+```
+
+## Quick Start
+
+1. **Authenticate** with Hookie:
+
+```bash
+hookie login
+```
+
+This will open your browser to complete the authentication flow. Your credentials are stored locally.
+
+2. **List your applications**:
+
+```bash
+hookie apps
+```
+
+3. **Listen to webhook events**:
+
+```bash
+hookie listen --app-id <your-app-id>
+```
+
+## Commands Overview
+
+The Hookie CLI provides the following commands:
+
+- **[Authentication](/cli/authentication)** - `login` and `logout` commands for managing your session
+- **[Applications](/cli/applications)** - `apps` command to list and manage applications
+- **[Topics](/cli/topics)** - `topics` command to list topics for an application
+- **[Listen](/cli/listen)** - `listen` command to stream webhook events in real-time
+
+## Global Flags
+
+All commands support these global flags:
+
+- `--org-id <org-id>` - Set organization ID globally or per command
+- `--debug` or `-d` - Show detailed information (headers, query params, body, etc.)
+
+Example:
+
+```bash
+# Set organization globally
+hookie --org-id <org-id> apps
+
+# Or set per command
+hookie apps --org-id <org-id>
+```
+
+## Configuration
+
+The CLI stores authentication tokens and configuration in `~/.hookie/config.json`. This file contains:
+
+- `token` - Clerk session token for authentication
+- `user_id` - Authenticated user ID
+- `relay_url` - Optional relay service URL override
+
+The configuration file is automatically created when you run `hookie login` and cleared when you run `hookie logout`.
+
+## Next Steps
+
+- Learn about [authentication](/cli/authentication)
+- Explore [applications](/cli/applications) and [topics](/cli/topics)
+- Start [listening to events](/cli/listen)

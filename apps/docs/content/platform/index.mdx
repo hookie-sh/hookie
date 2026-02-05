@@ -1,0 +1,115 @@
+---
+title: Overview
+description: Webhook relay platform for developers - receive, inspect, and route webhooks with ease
+---
+
+Hookie is a webhook ingestion and relay platform that allows you to receive, inspect, and stream webhook events in real-time. Create reliable webhook endpoints in seconds and manage webhooks from any service with ease.
+
+## What is Hookie?
+
+Hookie provides a complete solution for webhook management, solving common challenges developers face when working with webhooks:
+
+- **Testing webhooks locally** - Instead of exposing your local development server to the internet, stream webhooks directly to your machine
+- **Inspecting webhook payloads** - View complete webhook data including headers, query parameters, and body content in real-time
+- **Managing multiple endpoints** - Organize webhooks by applications and topics without complex infrastructure setup
+- **Reliable delivery** - Built for speed and reliability with real-time streaming capabilities
+
+Whether you're integrating with Stripe, GitHub, or any other service that sends webhooks, Hookie simplifies the entire workflow from development to production.
+
+## Key Features
+
+### Easy Setup
+
+Create webhook endpoints in seconds. No complex configuration or infrastructure setup required. Simply create an application and topic in the web UI, and you're ready to receive webhooks.
+
+### Real-time Delivery
+
+Receive webhooks instantly with our streaming architecture. Built for reliability and speed, ensuring you never miss an event.
+
+### Secure & Private
+
+Your webhooks are secure and private. We never access your data, and all communication is encrypted. Authentication ensures only you can access your webhook events.
+
+### Developer Friendly
+
+Simple REST API and comprehensive documentation make integration straightforward. The CLI tool provides a seamless developer experience for streaming events directly to your terminal.
+
+### Inspect & Debug
+
+View complete webhook payloads, headers, and metadata in real-time. Debug integrations faster with detailed event information at your fingertips.
+
+### Topic-based Organization
+
+Organize webhooks by applications and topics, making it easy to manage multiple webhook types and endpoints. Perfect for complex applications with multiple integrations.
+
+## Use Cases
+
+### Local Development
+
+Stream webhooks to your local machine while developing. No need to expose your development server or use tunneling services. Simply run `hookie listen` and receive webhooks instantly.
+
+### Testing & Debugging
+
+Inspect webhook payloads to understand third-party integrations. See exactly what data services are sending, including headers, query parameters, and body content. Perfect for debugging integration issues.
+
+### Webhook Monitoring
+
+Monitor webhook delivery and payloads in real-time. Track when webhooks arrive, inspect their contents, and ensure your integrations are working correctly.
+
+### Integration Development
+
+Test integrations with services like Stripe, GitHub, Slack, and more. Receive webhooks during development and testing without setting up complex infrastructure.
+
+### Multi-environment Management
+
+Manage webhooks across different environments (development, staging, production) with organized applications and topics. Keep your webhook management clean and scalable.
+
+## How It Works
+
+Hookie consists of several components working together:
+
+- **Web Application** - Create and manage applications and topics through a modern UI
+- **Ingest Service** - Receives webhook payloads and publishes them to Redis Streams for reliable processing
+- **Relay Service** - Consumes events from Redis and streams them to CLI clients via gRPC
+- **CLI Tool** - Stream webhook events in real-time from your terminal
+
+When a webhook is sent to your Hookie endpoint, it flows through the ingest service, gets stored in Redis Streams, and is then relayed to any connected CLI clients in real-time. This architecture ensures reliable delivery and enables multiple consumers.
+
+## Getting Started
+
+Ready to start using Hookie? Here's a quick overview of the workflow:
+
+1. **Create an application** in the web UI to organize your webhooks
+2. **Create topics** for different webhook types (e.g., `stripe-payments`, `github-events`)
+3. **Use the webhook URL** in your third-party service configuration
+4. **Stream events** using the CLI tool to receive webhooks in real-time
+
+<Cards>
+  <Card
+    title="CLI Documentation"
+    href="/cli"
+    description="Learn how to use the Hookie CLI to stream webhook events"
+  />
+  <Card
+    title="Authentication"
+    href="/cli/authentication"
+    description="Set up authentication and manage your session"
+  />
+  <Card
+    title="Applications"
+    href="/cli/applications"
+    description="Create and manage applications"
+  />
+  <Card
+    title="Topics"
+    href="/cli/topics"
+    description="Organize webhooks with topics"
+  />
+</Cards>
+
+## Next Steps
+
+- Install the [CLI tool](/cli) to start streaming webhooks
+- Learn about [authentication](/cli/authentication) and setup
+- Explore [applications](/cli/applications) and [topics](/cli/topics) management
+- Start [listening to events](/cli/listen) in real-time

@@ -9,5 +9,5 @@ if (!supabaseUrl || !supabaseSecretKey) {
 
 export const supabaseServiceClient = createClient(
   supabaseUrl,
-  supabaseSecretKey
+  supabaseSecretKey,
 );

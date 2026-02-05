@@ -1,10 +1,10 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useForm, Controller } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { mutate } from 'swr'
-import { Button } from '@hookie/ui/components/button'
+import { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { mutate } from "swr";
+import { Button } from "@hookie/ui/components/button";
 import {
   Dialog,
   DialogContent,
@@ -13,23 +13,23 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@hookie/ui/components/dialog'
-import { Input } from '@hookie/ui/components/input'
-import { Label } from '@hookie/ui/components/label'
-import { createTopicSchema, type CreateTopicInput } from '../../schemas/topic'
+} from "@hookie/ui/components/dialog";
+import { Input } from "@hookie/ui/components/input";
+import { Label } from "@hookie/ui/components/label";
+import { createTopicSchema, type CreateTopicInput } from "../../schemas/topic";
 
 interface Topic {
-  id: string
-  name: string
-  description?: string
-  created_at: string
-  updated_at: string
+  id: string;
+  name: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface CreateTopicFormProps {
-  applicationId: string
-  onSuccess?: (topic: Topic) => void
-  onError?: (error: string) => void
+  applicationId: string;
+  onSuccess?: (topic: Topic) => void;
+  onError?: (error: string) => void;
 }
 
 export function CreateTopicForm({
@@ -37,8 +37,8 @@ export function CreateTopicForm({
   onSuccess,
   onError,
 }: CreateTopicFormProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [isOpen, setIsOpen] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
     control,
@@ -48,59 +48,59 @@ export function CreateTopicForm({
   } = useForm<CreateTopicInput>({
     resolver: zodResolver(createTopicSchema),
     defaultValues: {
-      name: '',
-      description: '',
+      name: "",
+      description: "",
     },
-  })
+  });
 
   const onSubmit = async (data: CreateTopicInput) => {
     try {
-      setSubmitError(null)
+      setSubmitError(null);
       const response = await fetch(
         `/api/applications/${applicationId}/topics`,
         {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify(data),
-        }
-      )
+        },
+      );
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to create topic')
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create topic");
       }
 
-      const newTopic = await response.json()
+      const newTopic = await response.json();
 
       // Optimistically update the cache, then revalidate
       mutate(
         `/api/applications/${applicationId}/topics`,
         (current: Topic[] | undefined) => {
-          return current ? [newTopic, ...current] : [newTopic]
+          return current ? [newTopic, ...current] : [newTopic];
         },
-        false
-      )
+        false,
+      );
 
       // Revalidate to confirm with server
-      await mutate(`/api/applications/${applicationId}/topics`)
+      await mutate(`/api/applications/${applicationId}/topics`);
 
       // Also update the applications list to reflect new topic count
-      await mutate('/api/applications')
+      await mutate("/api/applications");
 
-      setIsOpen(false)
-      reset()
-      setSubmitError(null)
-      onSuccess?.(newTopic)
+      setIsOpen(false);
+      reset();
+      setSubmitError(null);
+      onSuccess?.(newTopic);
     } catch (err) {
-      console.error('Failed to create topic:', err)
+      console.error("Failed to create topic:", err);
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to create topic'
-      setSubmitError(errorMessage)
-      onError?.(errorMessage)
+        err instanceof Error ? err.message : "Failed to create topic";
+      setSubmitError(errorMessage);
+      onError?.(errorMessage);
     }
-  }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -169,11 +169,11 @@ export function CreateTopicForm({
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Creating...' : 'Create'}
+              {isSubmitting ? "Creating..." : "Create"}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

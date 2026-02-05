@@ -4,21 +4,21 @@ import {
   CardTitle,
   CardContent,
   CardFooter,
-} from '@hookie/ui/components/card'
-import { Badge } from '@hookie/ui/components/badge'
-import { Check } from 'lucide-react'
-import { listProducts } from '../../db/server'
-import { PurchaseProduct } from '../purchase-product'
+} from "@hookie/ui/components/card";
+import { Badge } from "@hookie/ui/components/badge";
+import { Check } from "lucide-react";
+import { listProducts } from "../../db/server";
+import { PurchaseProduct } from "../purchase-product";
 
 export async function Products() {
-  const products = await listProducts()
+  const products = await listProducts();
   return (
     <>
       {products.map((product) => (
         <Card
           key={product.name}
           className={`flex flex-col ${
-            product.highlight ? 'border-primary/20 shadow-md' : ''
+            product.highlight ? "border-primary/20 shadow-md" : ""
           }`}
         >
           <CardHeader>
@@ -63,5 +63,5 @@ export async function Products() {
         </Card>
       ))}
     </>
-  )
+  );
 }

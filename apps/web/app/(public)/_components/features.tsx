@@ -3,8 +3,8 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@hookie/ui/components/card'
-import { Webhook, Zap, Shield, Code } from 'lucide-react'
+} from "@hookie/ui/components/card";
+import { Webhook, Zap, Shield, Code } from "lucide-react";
 
 export function Features() {
   return (
@@ -60,5 +60,5 @@ export function Features() {
         </Card>
       </div>
     </section>
-  )
+  );
 }

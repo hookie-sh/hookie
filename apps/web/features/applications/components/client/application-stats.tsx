@@ -1,23 +1,23 @@
-'use client'
+"use client";
 
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from '@hookie/ui/components/card'
-import { Activity, TrendingUp, Webhook } from 'lucide-react'
+} from "@hookie/ui/components/card";
+import { Activity, TrendingUp, Webhook } from "lucide-react";
 
 interface ApplicationStatsProps {
-  topicCount?: number
-  webhooksToday?: number
-  successRate?: string
+  topicCount?: number;
+  webhooksToday?: number;
+  successRate?: string;
 }
 
 export function ApplicationStats({
   topicCount = 0,
   webhooksToday = 0,
-  successRate = '-',
+  successRate = "-",
 }: ApplicationStatsProps) {
   return (
     <div className="grid md:grid-cols-3 gap-6 mb-8">
@@ -38,7 +38,7 @@ export function ApplicationStats({
         <CardContent>
           <div className="text-2xl font-bold">{webhooksToday}</div>
           <p className="text-xs text-muted-foreground">
-            {webhooksToday === 0 ? 'No activity yet' : 'Active today'}
+            {webhooksToday === 0 ? "No activity yet" : "Active today"}
           </p>
         </CardContent>
       </Card>
@@ -50,10 +50,10 @@ export function ApplicationStats({
         <CardContent>
           <div className="text-2xl font-bold">{successRate}</div>
           <p className="text-xs text-muted-foreground">
-            {successRate === '-' ? 'No data available' : 'Overall success rate'}
+            {successRate === "-" ? "No data available" : "Overall success rate"}
           </p>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

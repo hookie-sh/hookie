@@ -2,8 +2,8 @@
 
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { Button } from "@hookie/ui/components/button";
+import { LogoWordmark } from "@hookie/ui/components/logo-wordmark";
 import Link from "next/link";
-import { LogoWordmark } from "./logo-wordmark";
 
 export function PublicHeader() {
   return (

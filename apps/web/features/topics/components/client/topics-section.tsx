@@ -1,21 +1,21 @@
-'use client'
+"use client";
 
-import useSWR from 'swr'
-import { Separator } from '@hookie/ui/components/separator'
-import { CreateTopicForm } from './create-topic-form'
-import { TopicsList } from './topics-list'
-import { fetcher } from '@/utils/api'
+import useSWR from "swr";
+import { Separator } from "@hookie/ui/components/separator";
+import { CreateTopicForm } from "./create-topic-form";
+import { TopicsList } from "./topics-list";
+import { fetcher } from "@/utils/api";
 
 interface Topic {
-  id: string
-  name: string
-  description?: string
-  created_at: string
-  updated_at: string
+  id: string;
+  name: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface TopicsSectionProps {
-  applicationId: string
+  applicationId: string;
 }
 
 export function TopicsSection({ applicationId }: TopicsSectionProps) {
@@ -30,8 +30,8 @@ export function TopicsSection({ applicationId }: TopicsSectionProps) {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       errorRetryCount: 3,
-    }
-  )
+    },
+  );
 
   return (
     <>
@@ -55,5 +55,5 @@ export function TopicsSection({ applicationId }: TopicsSectionProps) {
         error={topicsError}
       />
     </>
-  )
+  );
 }
