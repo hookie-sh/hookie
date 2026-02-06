@@ -36,6 +36,10 @@ export function TopicCard({
 }: TopicCardProps) {
   const [webhookCopied, setWebhookCopied] = useState(false);
   const [commandCopied, setCommandCopied] = useState(false);
+  const [showForwardExample, setShowForwardExample] = useState(true);
+
+  const listenCommand = `hookie topics listen ${id}`;
+  const listenCommandWithForward = `hookie topics listen ${id} --forward ${webhookUrl}`;
 
   const handleCopyWebhook = () => {
     navigator.clipboard.writeText(webhookUrl);
@@ -44,7 +48,8 @@ export function TopicCard({
   };
 
   const handleCopyCommand = () => {
-    navigator.clipboard.writeText(`hookie topics listen ${id}`);
+    const commandToCopy = showForwardExample ? listenCommandWithForward : listenCommand;
+    navigator.clipboard.writeText(commandToCopy);
     setCommandCopied(true);
     onCopy?.();
   };
@@ -110,31 +115,44 @@ export function TopicCard({
             <label className="text-sm font-medium text-muted-foreground">
               Listen Command
             </label>
-            <div className="flex items-center gap-2 mt-1">
-              <code className="flex-1 px-3 py-2 bg-muted rounded-md text-sm font-mono">
-                hookie topics listen {id}
-              </code>
-              <TooltipProvider>
-                <Tooltip open={commandCopied}>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={handleCopyCommand}
-                    >
-                      {commandCopied ? (
-                        <Check className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Copied to clipboard</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+            <div className="space-y-2 mt-1">
+              <div className="flex items-center gap-2">
+                <code className="flex-1 px-3 py-2 bg-muted rounded-md text-sm font-mono">
+                  {showForwardExample ? listenCommandWithForward : listenCommand}
+                </code>
+                <TooltipProvider>
+                  <Tooltip open={commandCopied}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={handleCopyCommand}
+                      >
+                        {commandCopied ? (
+                          <Check className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Copied to clipboard</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowForwardExample(!showForwardExample)}
+                className="text-xs h-7"
+              >
+                {showForwardExample
+                  ? "Show basic command"
+                  : "Show with --forward flag"}
+              </Button>
             </div>
           </div>
           {onDelete && (

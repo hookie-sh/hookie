@@ -71,17 +71,18 @@ var appsCmd = &cobra.Command{
 }
 
 var appsListenCmd = &cobra.Command{
-	Use:   "listen [app-id] [endpoint-url]",
+	Use:   "listen [app-id]",
 	Short: "Listen to webhook events for an application",
-	Long:  `Listen to webhook events for all topics in a specific application. Optionally forward events to an endpoint URL.`,
-	Args:  cobra.RangeArgs(1, 2),
+	Long:  `Listen to webhook events for all topics in a specific application. Optionally forward events to an endpoint URL using --forward flag.`,
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		appID := args[0]
+		forwardURL, _ := cmd.Flags().GetString("forward")
 
 		// Parse and validate endpoint URL if provided
 		var endpointURL *url.URL
-		if len(args) > 1 {
-			parsedURL, err := url.Parse(args[1])
+		if forwardURL != "" {
+			parsedURL, err := url.Parse(forwardURL)
 			if err != nil {
 				return fmt.Errorf("invalid endpoint URL: %w", err)
 			}
@@ -97,6 +98,7 @@ var appsListenCmd = &cobra.Command{
 
 func init() {
 	appsCmd.Flags().StringVar(&orgIDFlag, "org-id", "", "Filter by organization ID")
+	appsListenCmd.Flags().StringP("forward", "f", "", "Forward events to the specified endpoint URL")
 	appsCmd.AddCommand(appsListenCmd)
 	rootCmd.AddCommand(appsCmd)
 }

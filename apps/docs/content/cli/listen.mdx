@@ -119,16 +119,27 @@ hookie listen --app-id <app-id> -d
 
 ## Forward Events to Local Endpoint
 
-Forward received events to a local HTTP endpoint:
+Forward received events to a local HTTP endpoint using the `--forward` flag (or `-f` shorthand):
 
 ```bash
-hookie listen --app-id <app-id> <endpoint-url>
+# Forward events from an application
+hookie apps listen <app-id> --forward <endpoint-url>
+
+# Forward events from a specific topic
+hookie topics listen <topic-id> --forward <endpoint-url>
 ```
 
 ### Example
 
 ```bash
-hookie listen --app-id app_123 http://localhost:3001/webhooks
+# Forward all events from an application
+hookie apps listen app_123 --forward http://localhost:3001/webhooks
+
+# Or use the shorthand
+hookie apps listen app_123 -f http://localhost:3001/webhooks
+
+# Forward events from a specific topic
+hookie topics listen topic_456 --forward http://localhost:3001/webhooks
 ```
 
 The CLI will:

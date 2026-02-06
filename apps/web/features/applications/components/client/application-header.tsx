@@ -30,10 +30,13 @@ export function ApplicationHeader({
   applicationId,
 }: ApplicationHeaderProps) {
   const listenCommand = `hookie apps listen ${applicationId}`;
+  const listenCommandWithForward = `hookie apps listen ${applicationId} --forward http://localhost:3001/webhooks`;
   const [copied, setCopied] = useState(false);
+  const [showForwardExample, setShowForwardExample] = useState(true);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(listenCommand);
+    const commandToCopy = showForwardExample ? listenCommandWithForward : listenCommand;
+    navigator.clipboard.writeText(commandToCopy);
     setCopied(true);
   };
 
@@ -68,35 +71,49 @@ export function ApplicationHeader({
           <CardTitle>Listen to Application</CardTitle>
           <CardDescription>
             Use this command to listen to all webhook events for this
-            application
+            application. Optionally forward events to a local endpoint using the{" "}
+            <code className="text-xs">--forward</code> flag.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 px-3 py-2 bg-muted rounded-md text-sm font-mono">
-              {listenCommand}
-            </code>
-            <TooltipProvider>
-              <Tooltip open={copied}>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={handleCopy}
-                  >
-                    {copied ? (
-                      <Check className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Copied to clipboard</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <code className="flex-1 px-3 py-2 bg-muted rounded-md text-sm font-mono">
+                {showForwardExample ? listenCommandWithForward : listenCommand}
+              </code>
+              <TooltipProvider>
+                <Tooltip open={copied}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={handleCopy}
+                    >
+                      {copied ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Copied to clipboard</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowForwardExample(!showForwardExample)}
+              className="text-xs"
+            >
+              {showForwardExample
+                ? "Show basic command"
+                : "Show with --forward flag example"}
+            </Button>
           </div>
         </CardContent>
       </Card>
