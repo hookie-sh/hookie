@@ -16,9 +16,11 @@ import (
 )
 
 type Client struct {
-	conn   *grpc.ClientConn
-	client proto.RelayServiceClient
-	token  string
+	conn      *grpc.ClientConn
+	client    proto.RelayServiceClient
+	token     string
+	channelID string  // anonymous channel ID
+	anonymous bool    // anonymous mode flag
 }
 
 func NewClient(token string) (*Client, error) {
@@ -80,6 +82,12 @@ func (c *Client) Close() error {
 }
 
 func (c *Client) createContext(ctx context.Context) context.Context {
+	if c.anonymous {
+		md := metadata.New(map[string]string{
+			"x-channel-type": "anonymous",
+		})
+		return metadata.NewOutgoingContext(ctx, md)
+	}
 	md := metadata.New(map[string]string{
 		"authorization": c.token,
 	})
@@ -116,5 +124,44 @@ func (c *Client) Subscribe(ctx context.Context, appID, topicID, orgID, machineID
 		MachineId: machineID,
 	}
 	return c.client.Subscribe(c.createContext(ctx), req)
+}
+
+// NewAnonymousClient creates a new relay client for anonymous usage (no auth)
+func NewAnonymousClient() (*Client, error) {
+	relayURL := os.Getenv("HOOKIE_RELAY_URL")
+	if relayURL == "" {
+		relayURL = GetRelayURL()
+	}
+
+	// Determine transport credentials based on URL
+	var creds credentials.TransportCredentials
+	if isLocalhost(relayURL) && os.Getenv("HOOKIE_INSECURE_TLS") == "" {
+		// Use insecure credentials for localhost (dev convenience)
+		creds = insecure.NewCredentials()
+	} else {
+		// Use TLS for remote connections (production)
+		creds = credentials.NewTLS(nil) // nil means use system root CAs
+	}
+
+	conn, err := grpc.NewClient(relayURL, grpc.WithTransportCredentials(creds))
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to relay: %w", err)
+	}
+
+	return &Client{
+		conn:      conn,
+		client:    proto.NewRelayServiceClient(conn),
+		anonymous: true,
+	}, nil
+}
+
+// CreateAnonymousChannel creates an anonymous ephemeral channel
+func (c *Client) CreateAnonymousChannel(ctx context.Context) (*proto.CreateAnonymousChannelResponse, error) {
+	return c.client.CreateAnonymousChannel(c.createContext(ctx), &proto.CreateAnonymousChannelRequest{})
+}
+
+// SetChannelID sets the anonymous channel ID
+func (c *Client) SetChannelID(channelID string) {
+	c.channelID = channelID
 }
 

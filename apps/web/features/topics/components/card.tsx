@@ -38,8 +38,8 @@ export function TopicCard({
   const [commandCopied, setCommandCopied] = useState(false);
   const [showForwardExample, setShowForwardExample] = useState(true);
 
-  const listenCommand = `hookie topics listen ${id}`;
-  const listenCommandWithForward = `hookie topics listen ${id} --forward ${webhookUrl}`;
+  const listenCommand = `hookie listen --topic-id ${id}`;
+  const listenCommandWithForward = `hookie listen --topic-id ${id} --forward ${webhookUrl}`;
 
   const handleCopyWebhook = () => {
     navigator.clipboard.writeText(webhookUrl);

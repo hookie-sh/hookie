@@ -69,6 +69,8 @@ The Hookie CLI provides the following commands:
 - **[Applications](/cli/applications)** - `apps` command to list and manage applications
 - **[Topics](/cli/topics)** - `topics` command to list topics for an application
 - **[Listen](/cli/listen)** - `listen` command to stream webhook events in real-time
+- **[Configuration](/cli/configuration)** - Repository configuration with `hookie.yml` files
+- **Init** - `init` command to create `hookie.yml` configuration files interactively
 
 ## Global Flags
 
@@ -89,13 +91,15 @@ hookie apps --org-id <org-id>
 
 ## Configuration
 
-The CLI stores authentication tokens and configuration in `~/.hookie/config.json`. This file contains:
+The CLI supports two types of configuration:
 
-- `token` - Clerk session token for authentication
-- `user_id` - Authenticated user ID
-- `relay_url` - Optional relay service URL override
+### Global Configuration
 
-The configuration file is automatically created when you run `hookie login` and cleared when you run `hookie logout`.
+The CLI stores authentication tokens securely in your system's keychain (macOS Keychain or equivalent). Your user ID and optional relay URL are stored locally. This configuration is automatically created when you run `hookie login` and cleared when you run `hookie logout`.
+
+### Repository Configuration
+
+You can create a `hookie.yml` file in your repository to configure app_id, forward URLs, and per-topic forwarding. Use `hookie init` to create one interactively, or see the [Configuration](/cli/configuration) documentation for details.
 
 ## Next Steps
 

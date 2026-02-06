@@ -1,0 +1,207 @@
+---
+title: Configuration
+description: Configure Hookie CLI using repository-specific hookie.yml files and global settings
+---
+
+The Hookie CLI supports two types of configuration: global configuration stored in your home directory, and repository-specific configuration using `hookie.yml` files.
+
+## Global Configuration
+
+The CLI stores authentication tokens securely in your system's keychain (macOS Keychain or equivalent). Your user ID and optional relay URL are stored locally. This configuration is automatically created when you run `hookie login` and cleared when you run `hookie logout`.
+
+You typically don't need to manage this configuration manually. Use `hookie login` and `hookie logout` to manage your authentication.
+
+## Repository Configuration
+
+You can create a `hookie.yml` file in your repository to configure app_id, forward URLs, and per-topic forwarding. This allows team members to run `hookie listen` without specifying flags.
+
+### File Format
+
+Create `hookie.yml` in your repository root:
+
+```yaml
+app_id: app_xxx
+forward: http://localhost:3001/webhooks
+topics:
+  topic_abc: http://localhost:3002/webhooks/topic-abc
+  topic_def: http://localhost:3003/webhooks/topic-def
+```
+
+#### Configuration Fields
+
+- **`app_id`** (optional) - Application ID to subscribe to. Mutually exclusive with `topic_id`.
+- **`topic_id`** (optional) - Topic ID to subscribe to. Mutually exclusive with `app_id`.
+- **`forward`** (optional) - Default forward URL for all events. Must include scheme and host (e.g., `http://localhost:3001/webhooks`).
+- **`topics`** (optional) - Map of topic_id -> forward URL for per-topic forwarding. Each URL must include scheme and host.
+
+### Configuration Discovery
+
+The CLI searches for `hookie.yml` starting from the current working directory and walks up the directory tree until found or reaching the filesystem root. The closest config file takes precedence.
+
+**Example:**
+
+If you run `hookie listen` from `/project/app/src/components`, the CLI will search:
+1. `/project/app/src/components/hookie.yml`
+2. `/project/app/src/hookie.yml`
+3. `/project/app/hookie.yml`
+4. `/project/hookie.yml`
+5. `/hookie.yml`
+
+It uses the first `hookie.yml` file found.
+
+### Priority Order
+
+When running `hookie listen`, configuration is resolved in this order:
+
+1. **CLI flags** (`--app-id`, `--forward`, etc.) - Highest priority
+2. **Repository config** (`hookie.yml`) - Medium priority
+3. **Interactive selector** - Lowest priority (if no flags or config)
+
+**Example:**
+
+```bash
+# CLI flag overrides config
+hookie listen --app-id app_different  # Uses app_different, ignores hookie.yml
+
+# Config used when no flags
+hookie listen  # Uses app_id from hookie.yml
+
+# Interactive selector when no config or flags
+hookie listen  # Prompts for selection if no hookie.yml found
+```
+
+## Initializing Configuration
+
+Use `hookie init` to interactively create a `hookie.yml` file:
+
+```bash
+hookie init
+```
+
+This command will:
+
+1. Check if `hookie.yml` already exists (prompts to overwrite if found)
+2. Require authentication (shows error if not logged in)
+3. Fetch your applications
+4. Show an interactive selector to choose an application
+5. Prompt for an optional forward URL
+6. Create `hookie.yml` in the current directory
+
+### Example Output
+
+```
+? Select an application
+  ▸ My Webhook App (app_123)
+    API Gateway (app_456)
+
+? Forward URL (optional)
+  http://localhost:3001/webhooks
+
+✓ Created hookie.yml
+
+Configuration:
+  App ID: app_123
+  Forward URL: http://localhost:3001/webhooks
+
+You can now run hookie listen without specifying flags.
+To add per-topic forwarding, edit hookie.yml and add entries under 'topics'.
+```
+
+## Per-Topic Forwarding
+
+You can configure different forward URLs for different topics. This is useful when different topics need to be forwarded to different endpoints.
+
+### Basic Example
+
+```yaml
+app_id: app_xxx
+forward: http://localhost:3001/webhooks  # Default for all topics
+topics:
+  payments: http://localhost:3002/payments  # Specific URL for payments topic
+  webhooks: http://localhost:3003/webhooks  # Specific URL for webhooks topic
+```
+
+### How It Works
+
+When an event arrives:
+
+1. If the event's `topic_id` exists in the `topics` map, use that URL
+2. Otherwise, use the default `forward` URL (if provided)
+3. If neither exists, the event is not forwarded
+
+**Example:**
+
+With the config above:
+- Event for `payments` topic → forwarded to `http://localhost:3002/payments`
+- Event for `webhooks` topic → forwarded to `http://localhost:3003/webhooks`
+- Event for `other` topic → forwarded to `http://localhost:3001/webhooks` (default)
+
+### Advanced Example
+
+```yaml
+app_id: app_xxx
+# No default forward URL
+topics:
+  payments: http://localhost:3002/payments
+  subscriptions: http://localhost:3003/subscriptions
+  # Events for other topics are not forwarded
+```
+
+## Team Collaboration
+
+Repository configuration files are perfect for team collaboration:
+
+1. **Commit `hookie.yml` to version control** - Team members can clone and run `hookie listen` immediately
+2. **Environment-specific configs** - Use different forward URLs per environment
+3. **Documentation** - The config file serves as documentation for which app/topics the repo uses
+
+### Example Workflow
+
+```bash
+# Developer A: Initialize config
+cd my-project
+hookie init
+# Selects app_123, sets forward to http://localhost:3001/webhooks
+git add hookie.yml
+git commit -m "Add hookie.yml configuration"
+git push
+
+# Developer B: Clone and use
+git clone my-project
+cd my-project
+hookie listen  # Automatically uses app_123 and forward URL from hookie.yml
+```
+
+## Validation
+
+The CLI validates configuration files:
+
+- **Mutual exclusivity** - `app_id` and `topic_id` cannot both be set
+- **URL format** - Forward URLs must include scheme (`http://` or `https://`) and host
+- **YAML syntax** - Invalid YAML will show clear error messages
+
+### Error Examples
+
+```bash
+# Invalid: Both app_id and topic_id specified
+Error: invalid configuration in hookie.yml: cannot specify both app_id and topic_id
+
+# Invalid: Missing scheme in URL
+Error: invalid forward URL: URL must include a scheme (e.g., http:// or https://)
+
+# Invalid: YAML syntax error
+Error: failed to parse hookie.yml: yaml: line 2: found character that cannot start any token
+```
+
+## Best Practices
+
+1. **Don't commit sensitive URLs** - Use environment variables or local-only configs for production URLs
+2. **Use relative paths** - Consider using environment-specific forward URLs
+3. **Document per-topic configs** - Add comments in YAML to explain why certain topics forward to specific URLs
+4. **Version control** - Commit `hookie.yml` so team members have consistent configuration
+
+## Related Commands
+
+- [Listen](/cli/listen) - Use repository configuration when listening to events
+- [Applications](/cli/applications) - Find application IDs for configuration
+- [Topics](/cli/topics) - Find topic IDs for per-topic forwarding

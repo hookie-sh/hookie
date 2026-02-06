@@ -29,8 +29,8 @@ export function ApplicationHeader({
   description,
   applicationId,
 }: ApplicationHeaderProps) {
-  const listenCommand = `hookie apps listen ${applicationId}`;
-  const listenCommandWithForward = `hookie apps listen ${applicationId} --forward http://localhost:3001/webhooks`;
+  const listenCommand = `hookie listen --app-id ${applicationId}`;
+  const listenCommandWithForward = `hookie listen --app-id ${applicationId} --forward http://localhost:3001/webhooks`;
   const [copied, setCopied] = useState(false);
   const [showForwardExample, setShowForwardExample] = useState(true);
 

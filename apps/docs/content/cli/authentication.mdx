@@ -19,7 +19,7 @@ hookie login
 2. Your default browser opens to the Hookie web app authentication page
 3. After completing authentication in the browser, you're redirected back to the CLI
 4. The CLI receives and verifies your authentication token
-5. Your credentials are saved to `~/.hookie/config.json`
+5. Your authentication token is securely stored in your system's keychain
 
 ### Example Output
 
@@ -64,7 +64,7 @@ Clear your stored authentication credentials.
 hookie logout
 ```
 
-This command removes the authentication token from `~/.hookie/config.json` and logs you out of the CLI.
+This command removes the authentication token from your system's keychain and logs you out of the CLI.
 
 ### Example Output
 
@@ -76,7 +76,7 @@ After logging out, you'll need to run `hookie login` again to authenticate.
 
 ## Token Management
 
-Authentication tokens are stored securely in `~/.hookie/config.json`. The token is used for all API requests to the Hookie relay service.
+Authentication tokens are stored securely in your system's keychain (macOS Keychain or equivalent). The token is used for all API requests to the Hookie relay service.
 
 **Note:** If your token expires or becomes invalid, you'll need to run `hookie login` again to refresh your credentials.
 

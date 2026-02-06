@@ -87,8 +87,68 @@ hookie listen --app-id app2 --org-id org1  # Org-owned app
 
 ## Configuration
 
-The CLI stores authentication tokens in `~/.hookie/config.json`. This file contains:
+### Global Configuration
 
-- `token`: Clerk session token
-- `user_id`: Authenticated user ID
-- `relay_url`: Optional relay service URL override
+The CLI stores authentication tokens securely in your system's keychain (macOS Keychain or equivalent). Your user ID and optional relay URL are stored locally.
+
+### Repository Configuration
+
+You can create a `hookie.yml` file in your repository to configure app_id, forward URLs, and per-topic forwarding. This allows team members to run `hookie listen` without specifying flags.
+
+#### File Format
+
+Create `hookie.yml` in your repository root:
+
+```yaml
+app_id: app_xxx
+forward: http://localhost:3001/webhooks
+topics:
+  topic_abc: http://localhost:3002/webhooks/topic-abc
+  topic_def: http://localhost:3003/webhooks/topic-def
+```
+
+- `app_id`: Application ID to subscribe to (optional, can also use `topic_id`)
+- `forward`: Default forward URL for all events (optional)
+- `topics`: Map of topic_id -> forward URL for per-topic forwarding (optional)
+
+#### Configuration Discovery
+
+The CLI searches for `hookie.yml` starting from the current working directory and walks up the directory tree until found or reaching the filesystem root. The closest config file takes precedence.
+
+#### Priority Order
+
+When running `hookie listen`, configuration is resolved in this order:
+1. CLI flags (`--app-id`, `--forward`, etc.)
+2. Repository config (`hookie.yml`)
+3. Interactive selector (if no flags or config)
+
+#### Initializing Configuration
+
+Use `hookie init` to interactively create a `hookie.yml` file:
+
+```bash
+hookie init
+```
+
+This will:
+- Prompt you to select an application
+- Optionally configure a default forward URL
+- Create `hookie.yml` in the current directory
+
+#### Per-Topic Forwarding
+
+You can configure different forward URLs for different topics:
+
+```yaml
+app_id: app_xxx
+forward: http://localhost:3001/webhooks  # Default for all topics
+topics:
+  payments: http://localhost:3002/payments  # Specific URL for payments topic
+  webhooks: http://localhost:3003/webhooks  # Specific URL for webhooks topic
+```
+
+When an event arrives for a topic with a specific forward URL, that URL is used. Otherwise, the default `forward` URL is used (if provided).
+
+#### Dependencies
+
+Repository configuration requires the `gopkg.in/yaml.v3` package, which is included in `go.mod`.

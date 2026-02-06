@@ -25,15 +25,17 @@ import (
 //   - topicID: Topic ID to listen to (empty for app level)
 //   - appID: Application ID to listen to (empty for topic level)
 //   - orgID: Organization ID (used for access verification)
-//   - endpointURL: Optional URL to forward events to
-func runListen(topicID, appID, orgID string, endpointURL *url.URL) error {
+//   - endpointURL: Optional default URL to forward events to
+//   - topicForwardMap: Optional map of topic_id -> forward URL for per-topic forwarding
+func runListen(topicID, appID, orgID string, endpointURL *url.URL, topicForwardMap map[string]*url.URL) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
 	if cfg.Token == "" {
-		return fmt.Errorf("not authenticated. Run 'hookie login' first")
+		// Fall back to anonymous mode
+		return runAnonymousListen(endpointURL)
 	}
 
 	client, err := relay.NewClient(cfg.Token)
@@ -96,8 +98,19 @@ func runListen(topicID, appID, orgID string, endpointURL *url.URL) error {
 		printEvent(event, debug)
 
 		// Forward event to endpoint if provided
-		if endpointURL != nil {
-			go forwardEvent(httpClient, event, endpointURL)
+		// Priority: topic-specific URL > default URL
+		var forwardURL *url.URL
+		if topicForwardMap != nil && event.TopicId != "" {
+			if topicURL, exists := topicForwardMap[event.TopicId]; exists {
+				forwardURL = topicURL
+			}
+		}
+		// Fall back to default forward URL if no topic-specific URL
+		if forwardURL == nil {
+			forwardURL = endpointURL
+		}
+		if forwardURL != nil {
+			go forwardEvent(httpClient, event, forwardURL)
 		}
 	}
 }

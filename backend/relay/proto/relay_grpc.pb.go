@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RelayService_Subscribe_FullMethodName        = "/relay.RelayService/Subscribe"
-	RelayService_ListApplications_FullMethodName = "/relay.RelayService/ListApplications"
-	RelayService_ListTopics_FullMethodName       = "/relay.RelayService/ListTopics"
+	RelayService_Subscribe_FullMethodName              = "/relay.RelayService/Subscribe"
+	RelayService_ListApplications_FullMethodName       = "/relay.RelayService/ListApplications"
+	RelayService_ListTopics_FullMethodName             = "/relay.RelayService/ListTopics"
+	RelayService_CreateAnonymousChannel_FullMethodName = "/relay.RelayService/CreateAnonymousChannel"
 )
 
 // RelayServiceClient is the client API for RelayService service.
@@ -36,6 +37,8 @@ type RelayServiceClient interface {
 	ListApplications(ctx context.Context, in *ListApplicationsRequest, opts ...grpc.CallOption) (*ListApplicationsResponse, error)
 	// List topics for a specific application, or all topics across all accessible applications
 	ListTopics(ctx context.Context, in *ListTopicsRequest, opts ...grpc.CallOption) (*ListTopicsResponse, error)
+	// Create an anonymous ephemeral channel (no auth required)
+	CreateAnonymousChannel(ctx context.Context, in *CreateAnonymousChannelRequest, opts ...grpc.CallOption) (*CreateAnonymousChannelResponse, error)
 }
 
 type relayServiceClient struct {
@@ -85,6 +88,16 @@ func (c *relayServiceClient) ListTopics(ctx context.Context, in *ListTopicsReque
 	return out, nil
 }
 
+func (c *relayServiceClient) CreateAnonymousChannel(ctx context.Context, in *CreateAnonymousChannelRequest, opts ...grpc.CallOption) (*CreateAnonymousChannelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateAnonymousChannelResponse)
+	err := c.cc.Invoke(ctx, RelayService_CreateAnonymousChannel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RelayServiceServer is the server API for RelayService service.
 // All implementations must embed UnimplementedRelayServiceServer
 // for forward compatibility.
@@ -97,6 +110,8 @@ type RelayServiceServer interface {
 	ListApplications(context.Context, *ListApplicationsRequest) (*ListApplicationsResponse, error)
 	// List topics for a specific application, or all topics across all accessible applications
 	ListTopics(context.Context, *ListTopicsRequest) (*ListTopicsResponse, error)
+	// Create an anonymous ephemeral channel (no auth required)
+	CreateAnonymousChannel(context.Context, *CreateAnonymousChannelRequest) (*CreateAnonymousChannelResponse, error)
 	mustEmbedUnimplementedRelayServiceServer()
 }
 
@@ -115,6 +130,9 @@ func (UnimplementedRelayServiceServer) ListApplications(context.Context, *ListAp
 }
 func (UnimplementedRelayServiceServer) ListTopics(context.Context, *ListTopicsRequest) (*ListTopicsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListTopics not implemented")
+}
+func (UnimplementedRelayServiceServer) CreateAnonymousChannel(context.Context, *CreateAnonymousChannelRequest) (*CreateAnonymousChannelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateAnonymousChannel not implemented")
 }
 func (UnimplementedRelayServiceServer) mustEmbedUnimplementedRelayServiceServer() {}
 func (UnimplementedRelayServiceServer) testEmbeddedByValue()                      {}
@@ -184,6 +202,24 @@ func _RelayService_ListTopics_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RelayService_CreateAnonymousChannel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateAnonymousChannelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RelayServiceServer).CreateAnonymousChannel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RelayService_CreateAnonymousChannel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RelayServiceServer).CreateAnonymousChannel(ctx, req.(*CreateAnonymousChannelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RelayService_ServiceDesc is the grpc.ServiceDesc for RelayService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -198,6 +234,10 @@ var RelayService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListTopics",
 			Handler:    _RelayService_ListTopics_Handler,
+		},
+		{
+			MethodName: "CreateAnonymousChannel",
+			Handler:    _RelayService_CreateAnonymousChannel_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -14,8 +16,10 @@ import (
 	"github.com/hookie/relay/internal/redis"
 	"github.com/hookie/relay/internal/supabase"
 	"github.com/hookie/relay/proto"
+	"github.com/segmentio/ksuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 )
 
@@ -116,6 +120,13 @@ func (s *Service) Subscribe(req *proto.SubscribeRequest, stream proto.RelayServi
 	ctx := stream.Context()
 
 	log.Printf("[Subscribe] Starting subscription request: topic_id=%q app_id=%q machine_id=%q", req.TopicId, req.AppId, req.MachineId)
+
+	// Check for anonymous channel subscription
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		if vals := md.Get("x-channel-type"); len(vals) > 0 && vals[0] == "anonymous" {
+			return s.handleAnonymousSubscribe(req, stream)
+		}
+	}
 
 	// Verify authentication
 	tokenInfo, err := s.extractTokenInfo(ctx)
@@ -880,5 +891,200 @@ func (s *Service) DisconnectAllClients(ctx context.Context) {
 	})
 	
 	log.Printf("[DisconnectAllClients] Completed: %d clients disconnected, %d errors", disconnectedCount, errorCount)
+}
+
+// extractClientIP extracts the client IP from gRPC context
+// Checks x-forwarded-for metadata first (for Fly.io proxy), then falls back to peer address
+func extractClientIP(ctx context.Context) string {
+	// Check x-forwarded-for from gRPC metadata first (Fly.io proxy)
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		if xff := md.Get("x-forwarded-for"); len(xff) > 0 {
+			// Take the first IP (client IP) from comma-separated list
+			ips := strings.Split(xff[0], ",")
+			if len(ips) > 0 {
+				return strings.TrimSpace(ips[0])
+			}
+		}
+	}
+	// Fall back to peer address
+	if p, ok := peer.FromContext(ctx); ok {
+		host, _, err := net.SplitHostPort(p.Addr.String())
+		if err == nil {
+			return host
+		}
+		return p.Addr.String()
+	}
+	return ""
+}
+
+// CreateAnonymousChannel creates an anonymous ephemeral channel (no auth required)
+func (s *Service) CreateAnonymousChannel(ctx context.Context, req *proto.CreateAnonymousChannelRequest) (*proto.CreateAnonymousChannelResponse, error) {
+	// Reject authenticated users - they should use their existing topics
+	if _, err := s.extractTokenInfo(ctx); err == nil {
+		return nil, status.Error(codes.PermissionDenied, "authenticated users cannot create anonymous channels. Please use your existing topics.")
+	}
+
+	// Extract client IP
+	ip := extractClientIP(ctx)
+	if ip == "" {
+		return nil, status.Error(codes.Internal, "failed to extract client IP")
+	}
+
+	log.Printf("[CreateAnonymousChannel] Request from IP: %s", ip)
+
+	// Check per-IP limit (max 3 channels per IP)
+	count, err := s.subscriber.CheckAnonIPCount(ctx, ip)
+	if err != nil {
+		log.Printf("[CreateAnonymousChannel] Failed to check IP count: %v", err)
+		return nil, status.Error(codes.Internal, "failed to check IP limit")
+	}
+	if count >= 3 {
+		return nil, status.Error(codes.ResourceExhausted, "maximum anonymous channels per IP exceeded (limit: 3)")
+	}
+
+	// Generate topic ID: "anon_" + KSUID
+	topicID := fmt.Sprintf("anon_%s", ksuid.New().String())
+
+	// Calculate expiry (2 hours from now)
+	expiresAt := time.Now().Add(2 * time.Hour)
+
+	// Create channel in Redis
+	if err := s.subscriber.CreateAnonChannel(ctx, topicID, ip, expiresAt); err != nil {
+		log.Printf("[CreateAnonymousChannel] Failed to create channel: %v", err)
+		return nil, status.Error(codes.Internal, "failed to create anonymous channel")
+	}
+
+	// Async: Insert into Supabase for analytics (fire-and-forget)
+	go func() {
+		if err := s.supabase.InsertAnonymousTopic(context.Background(), topicID, ip); err != nil {
+			log.Printf("[CreateAnonymousChannel] Failed to insert anonymous topic (non-fatal): %v", err)
+		}
+	}()
+
+	// Get ingest base URL from environment
+	ingestBaseURL := os.Getenv("INGEST_BASE_URL")
+	if ingestBaseURL == "" {
+		ingestBaseURL = "https://ingest.hookie.sh" // Default fallback
+	}
+	webhookURL := fmt.Sprintf("%s/anon/%s", ingestBaseURL, topicID)
+
+	// Get anonymous tier limits (10/min, 100/day, 64KB payload)
+	// These match the constants in backend/ingest/internal/ratelimit/tier.go
+	limits := &proto.AnonymousLimits{
+		RequestsPerDay:    100,
+		RequestsPerMinute: 10,
+		MaxPayloadBytes:   64 * 1024, // 64KB
+	}
+
+	log.Printf("[CreateAnonymousChannel] Created channel: %s for IP: %s, expires at: %s", topicID, ip, expiresAt.Format(time.RFC3339))
+
+	return &proto.CreateAnonymousChannelResponse{
+		ChannelId:  topicID,
+		WebhookUrl: webhookURL,
+		ExpiresAt:  expiresAt.Unix(),
+		Limits:     limits,
+	}, nil
+}
+
+// handleAnonymousSubscribe handles anonymous channel subscriptions (no auth required)
+func (s *Service) handleAnonymousSubscribe(req *proto.SubscribeRequest, stream proto.RelayService_SubscribeServer) error {
+	ctx := stream.Context()
+	topicID := req.TopicId
+
+	log.Printf("[handleAnonymousSubscribe] Anonymous subscription request: topic_id=%q", topicID)
+
+	// Validate topic_id is provided
+	if topicID == "" {
+		return status.Error(codes.InvalidArgument, "topic_id is required for anonymous subscriptions")
+	}
+
+	// Validate topicId starts with "anon_"
+	if !strings.HasPrefix(topicID, "anon_") {
+		return status.Error(codes.InvalidArgument, "invalid anonymous topic ID format")
+	}
+
+	// Validate channel exists + not expired
+	if err := s.subscriber.ValidateAnonChannel(ctx, topicID); err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return status.Error(codes.NotFound, "anonymous channel not found")
+		}
+		if strings.Contains(err.Error(), "expired") {
+			return status.Error(codes.NotFound, "anonymous channel expired")
+		}
+		if strings.Contains(err.Error(), "disabled") {
+			return status.Error(codes.PermissionDenied, "anonymous channel disabled")
+		}
+		return status.Error(codes.Internal, fmt.Sprintf("failed to validate anonymous channel: %v", err))
+	}
+
+	// Track connection
+	if err := s.subscriber.TrackAnonConnection(ctx, topicID); err != nil {
+		log.Printf("[handleAnonymousSubscribe] Warning: failed to track connection: %v", err)
+		// Continue anyway - tracking is not critical
+	}
+
+	// Remove connection tracking on disconnect
+	defer func() {
+		if err := s.subscriber.RemoveAnonConnection(ctx, topicID); err != nil {
+			log.Printf("[handleAnonymousSubscribe] Warning: failed to remove connection tracking: %v", err)
+		}
+	}()
+
+	// Create event channel
+	eventsCh := make(chan redis.StreamEvent, 100)
+
+	// Subscribe to Redis stream for anonymous topic
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	if err := s.subscriber.SubscribeToAnonymousTopic(topicID, eventsCh); err != nil {
+		return status.Error(codes.Internal, fmt.Sprintf("failed to subscribe to anonymous topic: %v", err))
+	}
+
+	log.Printf("[handleAnonymousSubscribe] Subscribed to anonymous topic: %s", topicID)
+
+	// Stream events to client
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case event, ok := <-eventsCh:
+			if !ok {
+				return status.Error(codes.Internal, "event channel closed")
+			}
+
+			// Convert Redis event to proto Event
+			protoEvent, err := s.convertToAnonymousProtoEvent(ctx, event, topicID)
+			if err != nil {
+				log.Printf("[handleAnonymousSubscribe] Error converting event: %v", err)
+				continue // Skip this event but continue processing
+			}
+			if err := stream.Send(protoEvent); err != nil {
+				log.Printf("[handleAnonymousSubscribe] Error sending event: %v", err)
+				return err
+			}
+		}
+	}
+}
+
+// convertToAnonymousProtoEvent converts a Redis stream event to proto Event for anonymous topics
+func (s *Service) convertToAnonymousProtoEvent(ctx context.Context, event redis.StreamEvent, topicID string) (*proto.Event, error) {
+	// For anonymous topics, we don't have an application_id
+	// The topicID is the channel ID itself
+	return &proto.Event{
+		Method:        event.Fields["method"],
+		Url:           event.Fields["url"],
+		Path:          event.Fields["path"],
+		Query:         event.Fields["query"],
+		Headers:       event.Fields["headers"],
+		Body:          event.Fields["body"],
+		ContentType:   event.Fields["content_type"],
+		ContentLength: event.Fields["content_length"],
+		RemoteAddr:    event.Fields["remote_addr"],
+		Timestamp:     s.parseTimestamp(event.Fields["timestamp"]),
+		AppId:         "", // Anonymous topics don't have an application
+		TopicId:       topicID,
+		EventType:     "webhook",
+	}, nil
 }
 

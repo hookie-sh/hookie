@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/hookie/cli/internal/auth"
 	"github.com/hookie/cli/internal/config"
 	"github.com/spf13/cobra"
@@ -115,26 +116,41 @@ var loginCmd = &cobra.Command{
 			return fmt.Errorf("authorization timeout")
 		}
 
-		// Step 6: Verify token and extract user ID
-		fmt.Println("Verifying token...")
-		userID, err := auth.VerifyToken(ctx, token)
-		if err != nil {
-			return fmt.Errorf("failed to verify token: %w", err)
-		}
+	// Step 6: Verify token
+	fmt.Println("Verifying token...")
+	_, err = auth.VerifyToken(ctx, token)
+	if err != nil {
+		return fmt.Errorf("failed to verify token: %w", err)
+	}
 
-		// Step 7: Save token to config
-		cfg := &config.Config{
-			Token:  token,
-			UserID: userID,
-		}
+	// Step 7: Extract user name and email from token claims
+	userInfo, err := auth.GetUserInfoFromToken(ctx, token)
+	if err != nil || userInfo == nil || userInfo.Name == "" {
+		// If name not in token, try API call as fallback
+		userInfo, _ = auth.GetUserInfo(ctx, token)
+	}
 
-		if err := config.Save(cfg); err != nil {
-			return fmt.Errorf("failed to save config: %w", err)
-		}
+	// Step 8: Save token to config
+	cfg := &config.Config{
+		Token: token,
+	}
 
-		fmt.Println("✓ Authentication successful!")
-		fmt.Printf("✓ Successfully authenticated as user %s\n", userID)
-		return nil
+	if err := config.Save(cfg); err != nil {
+		return fmt.Errorf("failed to save config: %w", err)
+	}
+
+	fmt.Println("✓ Authentication successful!")
+	if userInfo != nil && userInfo.Name != "" {
+		displayName := color.YellowString(userInfo.Name)
+		if userInfo.Email != "" {
+			fmt.Printf("✓ Successfully logged in as %s (%s)\n", displayName, userInfo.Email)
+		} else {
+			fmt.Printf("✓ Successfully logged in as %s\n", displayName)
+		}
+	} else {
+		fmt.Println("✓ Successfully logged in")
+	}
+	return nil
 	},
 }
 

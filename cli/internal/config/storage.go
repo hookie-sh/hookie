@@ -14,7 +14,6 @@ import (
 
 type Config struct {
 	Token     string `json:"-"` // Token stored in keyring, not in JSON
-	UserID    string `json:"user_id"`
 	RelayURL  string `json:"relay_url,omitempty"`
 	MachineID string `json:"machine_id,omitempty"`
 }
@@ -62,7 +61,7 @@ func getConfigPath() (string, error) {
 func Load() (*Config, error) {
 	config := &Config{}
 
-	// Load UserID and RelayURL from JSON file
+	// Load RelayURL and MachineID from JSON file
 	configPath, err := getConfigPath()
 	if err != nil {
 		return nil, err
@@ -70,23 +69,21 @@ func Load() (*Config, error) {
 
 	// Try to read config file (it's okay if it doesn't exist)
 	if data, err := os.ReadFile(configPath); err == nil {
-		// Use a struct that can read the old format with token
+		// Use a struct that can read the old format with token and user_id
 		var fileConfig struct {
 			Token     string `json:"token"`
-			UserID    string `json:"user_id"`
+			UserID    string `json:"user_id"` // Ignored - can be extracted from token
 			RelayURL  string `json:"relay_url,omitempty"`
 			MachineID string `json:"machine_id,omitempty"`
 		}
 		if err := json.Unmarshal(data, &fileConfig); err == nil {
-			config.UserID = fileConfig.UserID
 			config.RelayURL = fileConfig.RelayURL
 			config.MachineID = fileConfig.MachineID
 			// If there's a token in the file, migrate it to keyring
 			if fileConfig.Token != "" {
 				if err := migrateTokenToKeyring(fileConfig.Token); err == nil {
-					// Migration successful, rewrite config without token
+					// Migration successful, rewrite config without token or user_id
 					configToSave := &Config{
-						UserID:    config.UserID,
 						RelayURL:  config.RelayURL,
 						MachineID: config.MachineID,
 					}
@@ -171,7 +168,7 @@ func Save(config *Config) error {
 		kr, err := getKeyring()
 		if err != nil {
 			// If keyring is unavailable, we can't store the token securely
-			// Still save UserID and RelayURL, but token will be lost
+			// Still save RelayURL and MachineID, but token will be lost
 			// User will need to login again
 		} else {
 			// On macOS, try to remove the old item first to ensure it's recreated
@@ -187,16 +184,16 @@ func Save(config *Config) error {
 			})
 			if err != nil {
 				// If keyring set fails, token storage failed
-				// Still save UserID and RelayURL
+				// Still save RelayURL and MachineID
 			}
 		}
 	}
 
-	// Save UserID and RelayURL to JSON file (Token is excluded via json:"-")
+	// Save RelayURL and MachineID to JSON file (Token is excluded via json:"-")
 	return saveConfigFile(config)
 }
 
-// saveConfigFile saves only UserID, RelayURL, and MachineID to the JSON file
+// saveConfigFile saves only RelayURL and MachineID to the JSON file
 func saveConfigFile(config *Config) error {
 	configPath, err := getConfigPath()
 	if err != nil {
@@ -205,11 +202,9 @@ func saveConfigFile(config *Config) error {
 
 	// Create a copy without Token for JSON serialization
 	fileConfig := struct {
-		UserID    string `json:"user_id"`
 		RelayURL  string `json:"relay_url,omitempty"`
 		MachineID string `json:"machine_id,omitempty"`
 	}{
-		UserID:    config.UserID,
 		RelayURL:  config.RelayURL,
 		MachineID: config.MachineID,
 	}

@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"os"
 
 	"github.com/fatih/color"
@@ -89,35 +88,7 @@ var topicsCmd = &cobra.Command{
 	},
 }
 
-var topicsListenCmd = &cobra.Command{
-	Use:   "listen [topic-id]",
-	Short: "Listen to webhook events for a topic",
-	Long:  `Listen to webhook events for a specific topic. Optionally forward events to an endpoint URL using --forward flag.`,
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		topicID := args[0]
-		forwardURL, _ := cmd.Flags().GetString("forward")
-
-		// Parse and validate endpoint URL if provided
-		var endpointURL *url.URL
-		if forwardURL != "" {
-			parsedURL, err := url.Parse(forwardURL)
-			if err != nil {
-				return fmt.Errorf("invalid endpoint URL: %w", err)
-			}
-			if parsedURL.Scheme == "" || parsedURL.Host == "" {
-				return fmt.Errorf("invalid endpoint URL: must include scheme and host (e.g., http://localhost:3001/webhooks)")
-			}
-			endpointURL = parsedURL
-		}
-
-		return runListen(topicID, "", "", endpointURL)
-	},
-}
-
 func init() {
-	topicsListenCmd.Flags().StringP("forward", "f", "", "Forward events to the specified endpoint URL")
-	topicsCmd.AddCommand(topicsListenCmd)
 	rootCmd.AddCommand(topicsCmd)
 }
 

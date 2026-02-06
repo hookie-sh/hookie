@@ -3,27 +3,65 @@ title: Listen
 description: Stream webhook events in real-time for applications and topics
 ---
 
-The `listen` command streams webhook events in real-time from Hookie. You can listen to all topics for an application or filter by a specific topic. Events can optionally be forwarded to a local endpoint.
+The `listen` command streams webhook events in real-time from Hookie. You can listen anonymously, interactively select an app or topic, or directly subscribe using flags. Events can optionally be forwarded to a local endpoint.
 
-## Basic Usage
+## Anonymous Mode
 
-Listen to all topics for an application:
+<Callout type="warn">
+Anonymous mode is only available when you're not authenticated. If you're logged in, use your existing applications and topics instead.
+</Callout>
+
+If you're not authenticated, `hookie listen` creates an anonymous ephemeral channel:
+
+```bash
+hookie listen
+```
+
+This creates a temporary webhook URL that expires after a set time. Perfect for quick testing without signing up.
+
+### Example Output
+
+```
+╔═══════════════════════════════════════════════════════════╗
+║  Anonymous Ephemeral Channel Created                      ║
+╠═══════════════════════════════════════════════════════════╣
+║  Webhook URL: https://ingest.hookie.sh/anon/anon_xxx     ║
+║  Expires in: 24 hours                                    ║
+║  Rate limits: 100/min, 10000/day, 100 KB payload         ║
+╚═══════════════════════════════════════════════════════════╝
+```
+
+## Authenticated Mode
+
+When authenticated, `hookie listen` offers three ways to subscribe:
+
+### 1. Interactive Selection
+
+Run `hookie listen` without flags to see an interactive selector:
+
+```bash
+hookie listen
+```
+
+You'll see a list of both applications and topics. Select one:
+- **App**: Subscribes to all topics in that application
+- **Topic**: Subscribes to that specific topic only
+
+### 2. Direct App Subscription
+
+Subscribe to all topics of an application using `--app-id` (or `-a`):
 
 ```bash
 hookie listen --app-id <app-id>
 ```
 
-### Required Flags
-
-- `--app-id <app-id>` - **Required.** The application ID (obtained from `hookie apps`)
-
-### Example
+#### Example
 
 ```bash
 hookie listen --app-id app_123
 ```
 
-### Example Output
+#### Example Output
 
 ```
 Listening for events (app: app_123, all topics)...
@@ -34,6 +72,42 @@ Press Ctrl+C to stop
 2024-01-15T10:30:47Z [app_123] POST /webhooks/subscription (topic: subscriptions)
 ```
 
+### 3. Direct Topic Subscription
+
+Subscribe to a specific topic using `--topic-id` (or `-t`):
+
+```bash
+hookie listen --topic-id <topic-id>
+```
+
+#### Example
+
+```bash
+hookie listen --topic-id payments
+```
+
+#### Example Output
+
+```
+Listening for events (topic: payments)...
+Press Ctrl+C to stop
+
+2024-01-15T10:30:45Z [app_123] POST /webhooks/payment (topic: payments)
+2024-01-15T10:30:48Z [app_123] POST /webhooks/payment (topic: payments)
+```
+
+## Flags
+
+- `--app-id` or `-a` - Subscribe to all topics of an application
+- `--topic-id` or `-t` - Subscribe to a specific topic
+- `--forward` or `-f` - Forward events to a local endpoint URL
+- `--org-id` - Organization ID (for org-owned applications)
+- `--debug` or `-d` - Show detailed information (headers, query params, body)
+
+**Note**: `--app-id` and `--topic-id` are mutually exclusive. You cannot specify both.
+
+## Event Display
+
 Each event shows:
 
 - **Timestamp** - When the event occurred (RFC3339 format)
@@ -41,30 +115,6 @@ Each event shows:
 - **HTTP Method** - The HTTP method (GET, POST, etc.)
 - **Path** - The webhook path
 - **Topic** - The topic the event belongs to (if applicable)
-
-## Filter by Topic
-
-Listen to events for a specific topic:
-
-```bash
-hookie listen --app-id <app-id> --topic-id <topic-id>
-```
-
-### Example
-
-```bash
-hookie listen --app-id app_123 --topic-id payments
-```
-
-### Example Output
-
-```
-Listening for events (app: app_123, topic: payments)...
-Press Ctrl+C to stop
-
-2024-01-15T10:30:45Z [app_123] POST /webhooks/payment (topic: payments)
-2024-01-15T10:30:48Z [app_123] POST /webhooks/payment (topic: payments)
-```
 
 ## Organization-Owned Applications
 
@@ -123,23 +173,23 @@ Forward received events to a local HTTP endpoint using the `--forward` flag (or 
 
 ```bash
 # Forward events from an application
-hookie apps listen <app-id> --forward <endpoint-url>
+hookie listen --app-id <app-id> --forward <endpoint-url>
 
 # Forward events from a specific topic
-hookie topics listen <topic-id> --forward <endpoint-url>
+hookie listen --topic-id <topic-id> --forward <endpoint-url>
 ```
 
 ### Example
 
 ```bash
 # Forward all events from an application
-hookie apps listen app_123 --forward http://localhost:3001/webhooks
+hookie listen --app-id app_123 --forward http://localhost:3001/webhooks
 
 # Or use the shorthand
-hookie apps listen app_123 -f http://localhost:3001/webhooks
+hookie listen --app-id app_123 -f http://localhost:3001/webhooks
 
 # Forward events from a specific topic
-hookie topics listen topic_456 --forward http://localhost:3001/webhooks
+hookie listen --topic-id topic_456 --forward http://localhost:3001/webhooks
 ```
 
 The CLI will:
@@ -188,7 +238,7 @@ You can run multiple listeners simultaneously in separate terminals:
 hookie listen --app-id app_123
 
 # Terminal 2: Listen to payments topic only
-hookie listen --app-id app_123 --topic-id payments
+hookie listen --topic-id payments
 
 # Terminal 3: Listen to a different application
 hookie listen --app-id app_456
@@ -216,9 +266,9 @@ When forwarding events, the CLI:
 
 Forwarding happens asynchronously, so it won't block receiving new events.
 
-## Authentication Required
+## Authentication
 
-You must be authenticated to listen to events. If you're not logged in, you'll see:
+For authenticated features (app/topic subscriptions), you must be logged in. If you're not authenticated, you'll see:
 
 ```
 Error: not authenticated. Run 'hookie login' first
@@ -229,13 +279,21 @@ Run `hookie login` to authenticate.
 ## Common Use Cases
 
 - **Local development** - Stream events to your development environment
+- **Quick testing** - Use anonymous mode for temporary webhook URLs
 - **Debugging** - Use debug mode to inspect webhook payloads
 - **Testing** - Forward events to local test servers
 - **Monitoring** - Watch events in real-time across multiple applications
 - **Topic filtering** - Focus on specific event types
 
+## Repository Configuration
+
+You can use a `hookie.yml` file in your repository to configure app_id, forward URLs, and per-topic forwarding. This allows you to run `hookie listen` without specifying flags.
+
+See the [Configuration](/cli/configuration) documentation for details on setting up repository configuration.
+
 ## Related Commands
 
+- [Configuration](/cli/configuration) - Set up repository configuration with `hookie.yml`
 - [Applications](/cli/applications) - Find application IDs
 - [Topics](/cli/topics) - Find topic IDs for filtering
 - [Authentication](/cli/authentication) - Manage your CLI session

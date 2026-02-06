@@ -606,6 +606,173 @@ func (x *Topic) GetApplicationId() string {
 	return ""
 }
 
+// Request to create an anonymous ephemeral channel
+type CreateAnonymousChannelRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateAnonymousChannelRequest) Reset() {
+	*x = CreateAnonymousChannelRequest{}
+	mi := &file_proto_relay_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateAnonymousChannelRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateAnonymousChannelRequest) ProtoMessage() {}
+
+func (x *CreateAnonymousChannelRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_relay_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateAnonymousChannelRequest.ProtoReflect.Descriptor instead.
+func (*CreateAnonymousChannelRequest) Descriptor() ([]byte, []int) {
+	return file_proto_relay_proto_rawDescGZIP(), []int{8}
+}
+
+// Response with anonymous channel information
+type CreateAnonymousChannelResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ChannelId     string                 `protobuf:"bytes,1,opt,name=channel_id,json=channelId,proto3" json:"channel_id,omitempty"`
+	WebhookUrl    string                 `protobuf:"bytes,2,opt,name=webhook_url,json=webhookUrl,proto3" json:"webhook_url,omitempty"` // e.g. "https://ingest.hookie.sh/anon/anon_xxx"
+	ExpiresAt     int64                  `protobuf:"varint,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`   // Unix timestamp (seconds)
+	Limits        *AnonymousLimits       `protobuf:"bytes,4,opt,name=limits,proto3" json:"limits,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateAnonymousChannelResponse) Reset() {
+	*x = CreateAnonymousChannelResponse{}
+	mi := &file_proto_relay_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateAnonymousChannelResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateAnonymousChannelResponse) ProtoMessage() {}
+
+func (x *CreateAnonymousChannelResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_relay_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateAnonymousChannelResponse.ProtoReflect.Descriptor instead.
+func (*CreateAnonymousChannelResponse) Descriptor() ([]byte, []int) {
+	return file_proto_relay_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *CreateAnonymousChannelResponse) GetChannelId() string {
+	if x != nil {
+		return x.ChannelId
+	}
+	return ""
+}
+
+func (x *CreateAnonymousChannelResponse) GetWebhookUrl() string {
+	if x != nil {
+		return x.WebhookUrl
+	}
+	return ""
+}
+
+func (x *CreateAnonymousChannelResponse) GetExpiresAt() int64 {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return 0
+}
+
+func (x *CreateAnonymousChannelResponse) GetLimits() *AnonymousLimits {
+	if x != nil {
+		return x.Limits
+	}
+	return nil
+}
+
+// Anonymous channel rate limits
+type AnonymousLimits struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	RequestsPerDay    int64                  `protobuf:"varint,1,opt,name=requests_per_day,json=requestsPerDay,proto3" json:"requests_per_day,omitempty"`
+	RequestsPerMinute int64                  `protobuf:"varint,2,opt,name=requests_per_minute,json=requestsPerMinute,proto3" json:"requests_per_minute,omitempty"`
+	MaxPayloadBytes   int64                  `protobuf:"varint,3,opt,name=max_payload_bytes,json=maxPayloadBytes,proto3" json:"max_payload_bytes,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *AnonymousLimits) Reset() {
+	*x = AnonymousLimits{}
+	mi := &file_proto_relay_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AnonymousLimits) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AnonymousLimits) ProtoMessage() {}
+
+func (x *AnonymousLimits) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_relay_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AnonymousLimits.ProtoReflect.Descriptor instead.
+func (*AnonymousLimits) Descriptor() ([]byte, []int) {
+	return file_proto_relay_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *AnonymousLimits) GetRequestsPerDay() int64 {
+	if x != nil {
+		return x.RequestsPerDay
+	}
+	return 0
+}
+
+func (x *AnonymousLimits) GetRequestsPerMinute() int64 {
+	if x != nil {
+		return x.RequestsPerMinute
+	}
+	return 0
+}
+
+func (x *AnonymousLimits) GetMaxPayloadBytes() int64 {
+	if x != nil {
+		return x.MaxPayloadBytes
+	}
+	return 0
+}
+
 var File_proto_relay_proto protoreflect.FileDescriptor
 
 const file_proto_relay_proto_rawDesc = "" +
@@ -660,12 +827,26 @@ const file_proto_relay_proto_rawDesc = "" +
 	"created_at\x18\x04 \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
 	"updated_at\x18\x05 \x01(\x03R\tupdatedAt\x12%\n" +
-	"\x0eapplication_id\x18\x06 \x01(\tR\rapplicationId2\xdc\x01\n" +
+	"\x0eapplication_id\x18\x06 \x01(\tR\rapplicationId\"\x1f\n" +
+	"\x1dCreateAnonymousChannelRequest\"\xaf\x01\n" +
+	"\x1eCreateAnonymousChannelResponse\x12\x1d\n" +
+	"\n" +
+	"channel_id\x18\x01 \x01(\tR\tchannelId\x12\x1f\n" +
+	"\vwebhook_url\x18\x02 \x01(\tR\n" +
+	"webhookUrl\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\x03 \x01(\x03R\texpiresAt\x12.\n" +
+	"\x06limits\x18\x04 \x01(\v2\x16.relay.AnonymousLimitsR\x06limits\"\x97\x01\n" +
+	"\x0fAnonymousLimits\x12(\n" +
+	"\x10requests_per_day\x18\x01 \x01(\x03R\x0erequestsPerDay\x12.\n" +
+	"\x13requests_per_minute\x18\x02 \x01(\x03R\x11requestsPerMinute\x12*\n" +
+	"\x11max_payload_bytes\x18\x03 \x01(\x03R\x0fmaxPayloadBytes2\xc3\x02\n" +
 	"\fRelayService\x124\n" +
 	"\tSubscribe\x12\x17.relay.SubscribeRequest\x1a\f.relay.Event0\x01\x12S\n" +
 	"\x10ListApplications\x12\x1e.relay.ListApplicationsRequest\x1a\x1f.relay.ListApplicationsResponse\x12A\n" +
 	"\n" +
-	"ListTopics\x12\x18.relay.ListTopicsRequest\x1a\x19.relay.ListTopicsResponseB%Z#github.com/hookie/relay/proto;protob\x06proto3"
+	"ListTopics\x12\x18.relay.ListTopicsRequest\x1a\x19.relay.ListTopicsResponse\x12e\n" +
+	"\x16CreateAnonymousChannel\x12$.relay.CreateAnonymousChannelRequest\x1a%.relay.CreateAnonymousChannelResponseB%Z#github.com/hookie/relay/proto;protob\x06proto3"
 
 var (
 	file_proto_relay_proto_rawDescOnce sync.Once
@@ -679,31 +860,37 @@ func file_proto_relay_proto_rawDescGZIP() []byte {
 	return file_proto_relay_proto_rawDescData
 }
 
-var file_proto_relay_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_proto_relay_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_proto_relay_proto_goTypes = []any{
-	(*SubscribeRequest)(nil),         // 0: relay.SubscribeRequest
-	(*Event)(nil),                    // 1: relay.Event
-	(*ListApplicationsRequest)(nil),  // 2: relay.ListApplicationsRequest
-	(*ListApplicationsResponse)(nil), // 3: relay.ListApplicationsResponse
-	(*Application)(nil),              // 4: relay.Application
-	(*ListTopicsRequest)(nil),        // 5: relay.ListTopicsRequest
-	(*ListTopicsResponse)(nil),       // 6: relay.ListTopicsResponse
-	(*Topic)(nil),                    // 7: relay.Topic
+	(*SubscribeRequest)(nil),               // 0: relay.SubscribeRequest
+	(*Event)(nil),                          // 1: relay.Event
+	(*ListApplicationsRequest)(nil),        // 2: relay.ListApplicationsRequest
+	(*ListApplicationsResponse)(nil),       // 3: relay.ListApplicationsResponse
+	(*Application)(nil),                    // 4: relay.Application
+	(*ListTopicsRequest)(nil),              // 5: relay.ListTopicsRequest
+	(*ListTopicsResponse)(nil),             // 6: relay.ListTopicsResponse
+	(*Topic)(nil),                          // 7: relay.Topic
+	(*CreateAnonymousChannelRequest)(nil),  // 8: relay.CreateAnonymousChannelRequest
+	(*CreateAnonymousChannelResponse)(nil), // 9: relay.CreateAnonymousChannelResponse
+	(*AnonymousLimits)(nil),                // 10: relay.AnonymousLimits
 }
 var file_proto_relay_proto_depIdxs = []int32{
-	4, // 0: relay.ListApplicationsResponse.applications:type_name -> relay.Application
-	7, // 1: relay.ListTopicsResponse.topics:type_name -> relay.Topic
-	0, // 2: relay.RelayService.Subscribe:input_type -> relay.SubscribeRequest
-	2, // 3: relay.RelayService.ListApplications:input_type -> relay.ListApplicationsRequest
-	5, // 4: relay.RelayService.ListTopics:input_type -> relay.ListTopicsRequest
-	1, // 5: relay.RelayService.Subscribe:output_type -> relay.Event
-	3, // 6: relay.RelayService.ListApplications:output_type -> relay.ListApplicationsResponse
-	6, // 7: relay.RelayService.ListTopics:output_type -> relay.ListTopicsResponse
-	5, // [5:8] is the sub-list for method output_type
-	2, // [2:5] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	4,  // 0: relay.ListApplicationsResponse.applications:type_name -> relay.Application
+	7,  // 1: relay.ListTopicsResponse.topics:type_name -> relay.Topic
+	10, // 2: relay.CreateAnonymousChannelResponse.limits:type_name -> relay.AnonymousLimits
+	0,  // 3: relay.RelayService.Subscribe:input_type -> relay.SubscribeRequest
+	2,  // 4: relay.RelayService.ListApplications:input_type -> relay.ListApplicationsRequest
+	5,  // 5: relay.RelayService.ListTopics:input_type -> relay.ListTopicsRequest
+	8,  // 6: relay.RelayService.CreateAnonymousChannel:input_type -> relay.CreateAnonymousChannelRequest
+	1,  // 7: relay.RelayService.Subscribe:output_type -> relay.Event
+	3,  // 8: relay.RelayService.ListApplications:output_type -> relay.ListApplicationsResponse
+	6,  // 9: relay.RelayService.ListTopics:output_type -> relay.ListTopicsResponse
+	9,  // 10: relay.RelayService.CreateAnonymousChannel:output_type -> relay.CreateAnonymousChannelResponse
+	7,  // [7:11] is the sub-list for method output_type
+	3,  // [3:7] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_proto_relay_proto_init() }
@@ -717,7 +904,7 @@ func file_proto_relay_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_relay_proto_rawDesc), len(file_proto_relay_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

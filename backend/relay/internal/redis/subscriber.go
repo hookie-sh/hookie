@@ -152,9 +152,14 @@ func (s *Subscriber) subscribeToStream(streamKey string, eventsChan chan<- Strea
 
 func (s *Subscriber) readFromStreams(streams []string, group, consumer string, eventsChan chan<- StreamEvent) {
 	for {
+		// XReadGroup requires: all stream keys first, then all IDs
+		// Format: [stream1, stream2, ..., streamN, id1, id2, ..., idN]
 		streamsList := make([]string, 0, len(streams)*2)
-		for _, stream := range streams {
-			streamsList = append(streamsList, stream, ">")
+		// Add all stream keys first
+		streamsList = append(streamsList, streams...)
+		// Then add all IDs (">" for each stream means "new messages never delivered")
+		for range streams {
+			streamsList = append(streamsList, ">")
 		}
 
 		results, err := s.client.XReadGroup(s.ctx, &redis.XReadGroupArgs{
@@ -262,6 +267,98 @@ func (s *Subscriber) Client() *redis.Client {
 
 func (s *Subscriber) Close() error {
 	return s.client.Close()
+}
+
+// StreamKey returns the Redis stream key for a topic, with optional anonymous prefix
+func StreamKey(topicID string, anonymous bool) string {
+	if anonymous {
+		return fmt.Sprintf("anon:topics:%s", topicID)
+	}
+	return fmt.Sprintf("topics:%s", topicID)
+}
+
+// ValidateAnonChannel validates that an anonymous channel exists and is not expired
+func (s *Subscriber) ValidateAnonChannel(ctx context.Context, topicID string) error {
+	// Check if topicID starts with "anon_"
+	if !strings.HasPrefix(topicID, "anon_") {
+		return fmt.Errorf("invalid anonymous topic ID format")
+	}
+
+	// Check if channel exists and is not expired
+	score, err := s.client.ZScore(ctx, "anon:channels", topicID).Result()
+	if err == redis.Nil {
+		return fmt.Errorf("anonymous channel not found")
+	}
+	if err != nil {
+		return fmt.Errorf("failed to check anonymous channel: %w", err)
+	}
+
+	// Check if expired (score is expiry timestamp in milliseconds)
+	now := time.Now().UnixMilli()
+	if score <= float64(now) {
+		return fmt.Errorf("anonymous channel expired")
+	}
+
+	// Check if disabled
+	disabled, err := s.client.HGet(ctx, fmt.Sprintf("anon:meta:%s", topicID), "disabled").Result()
+	if err != nil && err != redis.Nil {
+		return fmt.Errorf("failed to check disabled status: %w", err)
+	}
+	if disabled == "true" {
+		return fmt.Errorf("anonymous channel disabled")
+	}
+
+	return nil
+}
+
+// CreateAnonChannel creates an anonymous channel in Redis with all required keys
+func (s *Subscriber) CreateAnonChannel(ctx context.Context, topicID, ip string, expiresAt time.Time) error {
+	expiresAtMs := expiresAt.UnixMilli()
+	createdAt := time.Now().UTC().Format(time.RFC3339)
+	expiresAtStr := expiresAt.UTC().Format(time.RFC3339)
+	ttl := expiresAt.Sub(time.Now())
+
+	pipe := s.client.Pipeline()
+	// Add to sorted set for expiry tracking
+	pipe.ZAdd(ctx, "anon:channels", redis.Z{
+		Score:  float64(expiresAtMs),
+		Member: topicID,
+	})
+	// Store metadata
+	pipe.HSet(ctx, fmt.Sprintf("anon:meta:%s", topicID), map[string]interface{}{
+		"ip":         ip,
+		"created_at": createdAt,
+		"expires_at": expiresAtStr,
+		"disabled":   "false",
+	})
+	pipe.Expire(ctx, fmt.Sprintf("anon:meta:%s", topicID), ttl)
+	// Track per-IP
+	pipe.SAdd(ctx, fmt.Sprintf("anon:ip:%s", ip), topicID)
+	pipe.Expire(ctx, fmt.Sprintf("anon:ip:%s", ip), ttl)
+
+	_, err := pipe.Exec(ctx)
+	return err
+}
+
+// CheckAnonIPCount returns the number of active anonymous channels for an IP
+func (s *Subscriber) CheckAnonIPCount(ctx context.Context, ip string) (int64, error) {
+	return s.client.SCard(ctx, fmt.Sprintf("anon:ip:%s", ip)).Result()
+}
+
+// TrackAnonConnection marks that a CLI is connected to an anonymous channel
+func (s *Subscriber) TrackAnonConnection(ctx context.Context, topicID string) error {
+	return s.client.Set(ctx, fmt.Sprintf("anon:connected:%s", topicID), "1", 2*time.Hour).Err()
+}
+
+// RemoveAnonConnection removes the connection tracking for an anonymous channel
+func (s *Subscriber) RemoveAnonConnection(ctx context.Context, topicID string) error {
+	return s.client.Del(ctx, fmt.Sprintf("anon:connected:%s", topicID)).Err()
+}
+
+// SubscribeToAnonymousTopic subscribes to an anonymous topic stream
+func (s *Subscriber) SubscribeToAnonymousTopic(topicID string, eventsChan chan<- StreamEvent) error {
+	streamKey := StreamKey(topicID, true)
+	return s.subscribeToStream(streamKey, eventsChan)
 }
 
 
