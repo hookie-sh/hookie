@@ -37,6 +37,8 @@ Set the required secrets and environment variables:
 
 ```bash
 fly secrets set REDIS_ADDR=your_redis_address:6379
+fly secrets set SUPABASE_URL=your_supabase_url
+fly secrets set SUPABASE_SECRET_KEY=your_supabase_service_role_key
 ```
 
 Optional environment variables:

@@ -77,3 +77,9 @@ func (c *Client) PublishWebhook(ctx context.Context, streamKey string, fields ma
 func (c *Client) Close() error {
 	return c.client.Close()
 }
+
+// GetRedisClient returns the underlying Redis client for advanced operations
+// like sorted sets used in rate limiting.
+func (c *Client) GetRedisClient() *redis.Client {
+	return c.client
+}

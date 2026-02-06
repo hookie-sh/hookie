@@ -11,7 +11,9 @@ import (
 
 	"github.com/hookie/ingest/internal/handlers"
 	"github.com/hookie/ingest/internal/middleware"
+	"github.com/hookie/ingest/internal/ratelimit"
 	"github.com/hookie/ingest/internal/redis"
+	"github.com/hookie/ingest/internal/supabase"
 	"github.com/joho/godotenv"
 )
 
@@ -32,18 +34,40 @@ func main() {
 	}
 	defer redisClient.Close()
 
-	webhookHandler := handlers.NewWebhookHandler(redisClient)
+	supabaseClient, err := supabase.NewClient()
+	if err != nil {
+		log.Fatalf("Failed to initialize supabase client: %v", err)
+	}
+
+	// Create rate limiter and resolver
+	limiter := ratelimit.NewLimiter(redisClient.GetRedisClient())
+	resolver := ratelimit.NewResolver(supabaseClient, redisClient.GetRedisClient())
+
+	// Create handlers
+	topicsHandler := handlers.NewTopicsHandler(redisClient)
+	anonHandler := handlers.NewAnonHandler(redisClient, supabaseClient)
 
 	mux := http.NewServeMux()
-	
+
 	// Health check endpoint
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))
 	})
-	
-	// Webhook endpoint - register all HTTP methods
-	mux.HandleFunc("/webhooks/{topicId}", webhookHandler.HandleWebhook)
+
+	// Authenticated topics endpoint
+	mux.Handle("/topics/{topicID}",
+		middleware.ForTopics(resolver, limiter)(
+			http.HandlerFunc(topicsHandler.HandleTopicWebhook),
+		),
+	)
+
+	// Anonymous topics endpoint
+	mux.Handle("/anon/{anonTopicID}",
+		middleware.ForAnon(redisClient, limiter, supabaseClient)(
+			http.HandlerFunc(anonHandler.HandleAnonWebhook),
+		),
+	)
 
 	handler := middleware.Logger(mux)
 
