@@ -93,3 +93,13 @@ func (c *Client) Close() error {
 func (c *Client) GetRedisClient() *redis.Client {
 	return c.client
 }
+
+// HasConnectedClients checks if any relay instances have clients connected to a topic
+func (c *Client) HasConnectedClients(ctx context.Context, topicID string) (bool, error) {
+	topicKey := fmt.Sprintf("relay:topics:%s", topicID)
+	count, err := c.client.SCard(ctx, topicKey).Result()
+	if err != nil {
+		return false, fmt.Errorf("failed to check connected clients: %w", err)
+	}
+	return count > 0, nil
+}

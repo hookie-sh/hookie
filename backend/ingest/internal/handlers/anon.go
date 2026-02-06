@@ -50,6 +50,20 @@ func (h *AnonHandler) HandleAnonWebhook(w http.ResponseWriter, r *http.Request) 
 	}
 	defer r.Body.Close()
 
+	// Check if any clients are connected to this topic
+	hasClients, err := h.redisClient.HasConnectedClients(r.Context(), anonTopicID)
+	if err != nil {
+		log.Printf("Error checking connected clients: %v", err)
+		// Continue anyway - don't block webhooks if check fails
+	} else if !hasClients {
+		// No clients connected, drop event
+		log.Printf("[AnonHandler] Dropping event for anonymous topic %s - no connected clients", anonTopicID)
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok", "dropped": "no clients connected"})
+		return
+	}
+
 	// Build fields and publish
 	fields := h.buildWebhookFields(r, body, anonTopicID)
 	streamKey := config.BuildStreamKey(true, anonTopicID)

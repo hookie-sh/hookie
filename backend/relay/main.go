@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"github.com/hookie/relay/internal/redis"
 	"github.com/hookie/relay/internal/supabase"
 	"github.com/joho/godotenv"
+	"github.com/segmentio/ksuid"
 )
 
 func init() {
@@ -57,8 +59,12 @@ func main() {
 		log.Fatal("CLERK_SECRET_KEY environment variable is required")
 	}
 
-	// Initialize Redis subscriber
-	subscriber, err := redis.NewSubscriber(redisAddr)
+	// Generate unique relay instance ID
+	instanceID := generateInstanceID()
+	log.Printf("Relay instance ID: %s", instanceID)
+
+	// Initialize Redis subscriber with instance ID
+	subscriber, err := redis.NewSubscriber(redisAddr, instanceID)
 	if err != nil {
 		log.Fatalf("Failed to initialize redis subscriber: %v", err)
 	}
@@ -147,9 +153,40 @@ func main() {
 	log.Println("Marking all active clients as disconnected...")
 	grpcServer.DisconnectAllClients(cleanupCtx)
 	
+	// Cleanup topic tracking for this instance
+	log.Println("Cleaning up topic tracking...")
+	if err := subscriber.CleanupInstanceTopics(cleanupCtx); err != nil {
+		log.Printf("Warning: failed to cleanup instance topics: %v", err)
+	}
+	
 	// Gracefully stop the gRPC server
 	grpcServer.GracefulStop()
 	log.Println("Relay service stopped")
+}
+
+// generateInstanceID generates a unique identifier for this relay instance
+// Format: hostname-pid-ksuid (e.g., "hostname-12345-ksuid")
+func generateInstanceID() string {
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "unknown"
+	}
+
+	pid := os.Getpid()
+	uniqueID := ksuid.New().String()
+
+	// Try to get container/host identifier if available
+	// Check for Fly.io instance ID
+	if flyInstanceID := os.Getenv("FLY_ALLOC_ID"); flyInstanceID != "" {
+		return fmt.Sprintf("fly-%s-%s", flyInstanceID, uniqueID)
+	}
+
+	// Check for Kubernetes pod name
+	if podName := os.Getenv("HOSTNAME"); podName != "" && podName != hostname {
+		return fmt.Sprintf("k8s-%s-%d-%s", podName, pid, uniqueID)
+	}
+
+	return fmt.Sprintf("%s-%d-%s", hostname, pid, uniqueID)
 }
 
 

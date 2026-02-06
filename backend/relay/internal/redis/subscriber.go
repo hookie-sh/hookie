@@ -13,11 +13,12 @@ import (
 )
 
 type Subscriber struct {
-	client *redis.Client
-	ctx    context.Context
+	client     *redis.Client
+	ctx        context.Context
+	instanceID string
 }
 
-func NewSubscriber(addr string) (*Subscriber, error) {
+func NewSubscriber(addr string, instanceID string) (*Subscriber, error) {
 	opts := &redis.Options{
 		Addr: addr,
 	}
@@ -66,8 +67,9 @@ func NewSubscriber(addr string) (*Subscriber, error) {
 	log.Printf("Redis pool config: PoolSize=%d, MinIdleConns=%d, PoolTimeout=%v", opts.PoolSize, opts.MinIdleConns, opts.PoolTimeout)
 
 	return &Subscriber{
-		client: rdb,
-		ctx:    ctx,
+		client:     rdb,
+		ctx:        ctx,
+		instanceID: instanceID,
 	}, nil
 }
 
@@ -80,7 +82,7 @@ type StreamEvent struct {
 
 // SubscribeToApplication subscribes to all topics for an application
 // topicIDs should be a list of topic IDs that belong to the application
-func (s *Subscriber) SubscribeToApplication(ctx context.Context, topicIDs []string, eventsChan chan<- StreamEvent) error {
+func (s *Subscriber) SubscribeToApplication(ctx context.Context, topicIDs []string, eventsChan chan<- StreamEvent, throttleCh <-chan struct{}) error {
 	if len(topicIDs) == 0 {
 		return nil
 	}
@@ -103,15 +105,15 @@ func (s *Subscriber) SubscribeToApplication(ctx context.Context, topicIDs []stri
 	}
 
 	// Start reading from all streams with context
-	go s.readFromStreams(ctx, streamKeys, consumerGroup, consumerName, eventsChan)
+	go s.readFromStreams(ctx, streamKeys, consumerGroup, consumerName, eventsChan, throttleCh)
 
 	return nil
 }
 
 // SubscribeToTopic subscribes to a specific topic
-func (s *Subscriber) SubscribeToTopic(ctx context.Context, topicID string, eventsChan chan<- StreamEvent) error {
+func (s *Subscriber) SubscribeToTopic(ctx context.Context, topicID string, eventsChan chan<- StreamEvent, throttleCh <-chan struct{}) error {
 	streamKey := fmt.Sprintf("topics:%s", topicID)
-	return s.subscribeToStream(ctx, streamKey, eventsChan)
+	return s.subscribeToStream(ctx, streamKey, eventsChan, throttleCh)
 }
 
 // subscribeToPattern monitors multiple streams matching a pattern
@@ -141,7 +143,7 @@ func (s *Subscriber) subscribeToPattern(pattern string, eventsChan chan<- Stream
 	}
 
 	// Start reading from all streams (using background context since this is internal)
-	go s.readFromStreams(s.ctx, keys, consumerGroup, consumerName, eventsChan)
+	go s.readFromStreams(s.ctx, keys, consumerGroup, consumerName, eventsChan, nil)
 
 	// Monitor for new streams matching the pattern
 	go s.monitorPattern(pattern, eventsChan, consumerGroup, consumerName)
@@ -150,7 +152,7 @@ func (s *Subscriber) subscribeToPattern(pattern string, eventsChan chan<- Stream
 }
 
 // subscribeToStream subscribes to a single stream
-func (s *Subscriber) subscribeToStream(ctx context.Context, streamKey string, eventsChan chan<- StreamEvent) error {
+func (s *Subscriber) subscribeToStream(ctx context.Context, streamKey string, eventsChan chan<- StreamEvent, throttleCh <-chan struct{}) error {
 	consumerGroup := "relay-consumers"
 	consumerName := fmt.Sprintf("consumer-%d", time.Now().UnixNano())
 
@@ -160,11 +162,11 @@ func (s *Subscriber) subscribeToStream(ctx context.Context, streamKey string, ev
 		return fmt.Errorf("failed to create consumer group: %w", err)
 	}
 
-	go s.readFromStream(ctx, streamKey, consumerGroup, consumerName, eventsChan)
+	go s.readFromStream(ctx, streamKey, consumerGroup, consumerName, eventsChan, throttleCh)
 	return nil
 }
 
-func (s *Subscriber) readFromStreams(ctx context.Context, streams []string, group, consumer string, eventsChan chan<- StreamEvent) {
+func (s *Subscriber) readFromStreams(ctx context.Context, streams []string, group, consumer string, eventsChan chan<- StreamEvent, throttleCh <-chan struct{}) {
 	for {
 		// Check context cancellation before blocking
 		select {
@@ -255,7 +257,11 @@ func (s *Subscriber) readFromStreams(ctx context.Context, streams []string, grou
 	}
 }
 
-func (s *Subscriber) readFromStream(ctx context.Context, streamKey, group, consumer string, eventsChan chan<- StreamEvent) {
+func (s *Subscriber) readFromStream(ctx context.Context, streamKey, group, consumer string, eventsChan chan<- StreamEvent, throttleCh <-chan struct{}) {
+	// Track pending events (events sent but not yet acknowledged)
+	pendingCount := 0
+	maxPending := 10 // Maximum pending events before throttling
+	
 	for {
 		// Check context cancellation before blocking
 		select {
@@ -263,6 +269,17 @@ func (s *Subscriber) readFromStream(ctx context.Context, streamKey, group, consu
 			log.Printf("[readFromStream] Context cancelled, stopping read from stream %s", streamKey)
 			return
 		default:
+		}
+
+		// Throttle: wait for signal if we have too many pending events
+		if throttleCh != nil && pendingCount >= maxPending {
+			select {
+			case <-throttleCh:
+				// Received signal that we can read more
+				pendingCount = 0 // Reset counter
+			case <-ctx.Done():
+				return
+			}
 		}
 
 		results, err := s.client.XReadGroup(ctx, &redis.XReadGroupArgs{
@@ -327,6 +344,7 @@ func (s *Subscriber) readFromStream(ctx context.Context, streamKey, group, consu
 					if err := s.client.XAck(ctx, streamKey, group, msg.ID).Err(); err != nil {
 						log.Printf("Warning: failed to acknowledge message %s from stream %s: %v", msg.ID, streamKey, err)
 					}
+					pendingCount++
 				case <-ctx.Done():
 					log.Printf("[readFromStream] Context cancelled while queuing event for stream %s, stopping", streamKey)
 					return
@@ -362,7 +380,7 @@ func (s *Subscriber) monitorPattern(pattern string, eventsChan chan<- StreamEven
 		}
 
 		if len(newStreams) > 0 {
-			go s.readFromStreams(s.ctx, newStreams, group, consumer, eventsChan)
+			go s.readFromStreams(s.ctx, newStreams, group, consumer, eventsChan, nil)
 		}
 	}
 }
@@ -462,9 +480,79 @@ func (s *Subscriber) RemoveAnonConnection(ctx context.Context, topicID string) e
 }
 
 // SubscribeToAnonymousTopic subscribes to an anonymous topic stream
-func (s *Subscriber) SubscribeToAnonymousTopic(ctx context.Context, topicID string, eventsChan chan<- StreamEvent) error {
+func (s *Subscriber) SubscribeToAnonymousTopic(ctx context.Context, topicID string, eventsChan chan<- StreamEvent, throttleCh <-chan struct{}) error {
 	streamKey := StreamKey(topicID, true)
-	return s.subscribeToStream(ctx, streamKey, eventsChan)
+	return s.subscribeToStream(ctx, streamKey, eventsChan, throttleCh)
+}
+
+// TrackTopicSubscription tracks that this relay instance has clients connected to a topic
+func (s *Subscriber) TrackTopicSubscription(ctx context.Context, topicID string, anonymous bool) error {
+	topicKey := fmt.Sprintf("relay:topics:%s", topicID)
+	instanceKey := fmt.Sprintf("relay:instances:%s:topics", s.instanceID)
+	
+	pipe := s.client.Pipeline()
+	pipe.SAdd(ctx, topicKey, s.instanceID)
+	pipe.Expire(ctx, topicKey, 2*time.Hour) // Expire if not refreshed
+	pipe.SAdd(ctx, instanceKey, topicID)
+	pipe.Expire(ctx, instanceKey, 2*time.Hour)
+	
+	_, err := pipe.Exec(ctx)
+	return err
+}
+
+// UntrackTopicSubscription removes tracking for a topic subscription
+// Returns true if this was the last instance for this topic
+func (s *Subscriber) UntrackTopicSubscription(ctx context.Context, topicID string) (bool, error) {
+	topicKey := fmt.Sprintf("relay:topics:%s", topicID)
+	instanceKey := fmt.Sprintf("relay:instances:%s:topics", s.instanceID)
+	
+	pipe := s.client.Pipeline()
+	pipe.SRem(ctx, topicKey, s.instanceID)
+	pipe.SRem(ctx, instanceKey, topicID)
+	
+	_, err := pipe.Exec(ctx)
+	if err != nil {
+		return false, err
+	}
+	
+	// Check if this was the last instance
+	count, err := s.client.SCard(ctx, topicKey).Result()
+	if err != nil {
+		return false, err
+	}
+	
+	return count == 0, nil
+}
+
+// HasConnectedClients checks if any relay instances have clients connected to a topic
+func (s *Subscriber) HasConnectedClients(ctx context.Context, topicID string) (bool, error) {
+	topicKey := fmt.Sprintf("relay:topics:%s", topicID)
+	count, err := s.client.SCard(ctx, topicKey).Result()
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+// CleanupInstanceTopics removes all topic tracking for this instance (called on shutdown)
+func (s *Subscriber) CleanupInstanceTopics(ctx context.Context) error {
+	instanceKey := fmt.Sprintf("relay:instances:%s:topics", s.instanceID)
+	
+	// Get all topics for this instance
+	topics, err := s.client.SMembers(ctx, instanceKey).Result()
+	if err != nil {
+		return err
+	}
+	
+	pipe := s.client.Pipeline()
+	for _, topicID := range topics {
+		topicKey := fmt.Sprintf("relay:topics:%s", topicID)
+		pipe.SRem(ctx, topicKey, s.instanceID)
+	}
+	pipe.Del(ctx, instanceKey)
+	
+	_, err = pipe.Exec(ctx)
+	return err
 }
 
 

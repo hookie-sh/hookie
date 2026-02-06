@@ -59,6 +59,8 @@ type clientSubscription struct {
 	machineID  string // Machine identifier (userID:machineIDFromRequest:orgID)
 	eventsCh   chan redis.StreamEvent
 	cancel     context.CancelFunc
+	throttleCh chan struct{} // Channel to signal when ready for more events
+	topicIDs   []string      // Topics this subscription is for
 }
 
 type machineSubscriptions struct {
@@ -256,18 +258,32 @@ func (s *Service) Subscribe(stream grpc.BidiStreamingServer[proto.SubscribeMessa
 	eventsChBufferSize := getChannelBufferSize("RELAY_EVENTS_CHANNEL_BUFFER", 5000)
 	eventsCh := make(chan redis.StreamEvent, eventsChBufferSize)
 
+	// Create throttle channel for flow control
+	throttleCh := make(chan struct{}, 1)
+
 	// Subscribe to Redis streams
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	// Track topic subscriptions in Redis before subscribing
+	for _, topicID := range topicIDs {
+		if err := s.subscriber.TrackTopicSubscription(ctx, topicID, false); err != nil {
+			log.Printf("Warning: failed to track topic subscription for %s: %v", topicID, err)
+		}
+	}
+
 	var subscribeErr error
 	if len(topicIDs) == 1 {
-		subscribeErr = s.subscriber.SubscribeToTopic(ctx, topicIDs[0], eventsCh)
+		subscribeErr = s.subscriber.SubscribeToTopic(ctx, topicIDs[0], eventsCh, throttleCh)
 	} else {
-		subscribeErr = s.subscriber.SubscribeToApplication(ctx, topicIDs, eventsCh)
+		subscribeErr = s.subscriber.SubscribeToApplication(ctx, topicIDs, eventsCh, throttleCh)
 	}
 
 	if subscribeErr != nil {
+		// Untrack topics if subscription failed
+		for _, topicID := range topicIDs {
+			s.subscriber.UntrackTopicSubscription(ctx, topicID)
+		}
 		return status.Error(codes.Internal, fmt.Sprintf("failed to subscribe: %v", subscribeErr))
 	}
 
@@ -363,9 +379,11 @@ func (s *Service) Subscribe(stream grpc.BidiStreamingServer[proto.SubscribeMessa
 
 	// Create subscription
 	subscription := &clientSubscription{
-		machineID: machineID,
-		eventsCh: eventsCh,
-		cancel:   cancel,
+		machineID:  machineID,
+		eventsCh:   eventsCh,
+		cancel:     cancel,
+		throttleCh: throttleCh,
+		topicIDs:   topicIDs,
 	}
 
 	// Add subscription to machine's list
@@ -397,6 +415,16 @@ func (s *Service) Subscribe(stream grpc.BidiStreamingServer[proto.SubscribeMessa
 		tokenInfo.UserID, req.MachineId, dbMachineID, orgID, target, connectionCount)
 
 	defer func() {
+		// Untrack topic subscriptions in Redis
+		for _, topicID := range subscription.topicIDs {
+			wasLast, err := s.subscriber.UntrackTopicSubscription(ctx, topicID)
+			if err != nil {
+				log.Printf("Warning: failed to untrack topic subscription for %s: %v", topicID, err)
+			} else if wasLast {
+				log.Printf("[Subscribe] Last client disconnected from topic %s", topicID)
+			}
+		}
+
 		// Remove subscription from machine's list
 		machineSubs.mu.Lock()
 		remaining := make([]*clientSubscription, 0)
@@ -536,6 +564,13 @@ func (s *Service) Subscribe(stream grpc.BidiStreamingServer[proto.SubscribeMessa
 			case <-readyCh:
 				// Client is ready for next event
 				log.Printf("[Subscribe] Received Ready signal, will send next event")
+				// Signal throttle channel to allow reading more events from Redis
+				select {
+				case subscription.throttleCh <- struct{}{}:
+					// Successfully signaled
+				default:
+					// Channel already has signal, skip
+				}
 			case <-ctx.Done():
 				return ctx.Err()
 			case err := <-recvErrCh:
@@ -1120,10 +1155,22 @@ func (s *Service) handleAnonymousSubscribe(req *proto.SubscribeRequest, stream g
 		// Continue anyway - tracking is not critical
 	}
 
+	// Track topic subscription in Redis
+	if err := s.subscriber.TrackTopicSubscription(ctx, topicID, true); err != nil {
+		log.Printf("[handleAnonymousSubscribe] Warning: failed to track topic subscription: %v", err)
+	}
+
 	// Remove connection tracking on disconnect
 	defer func() {
 		if err := s.subscriber.RemoveAnonConnection(ctx, topicID); err != nil {
 			log.Printf("[handleAnonymousSubscribe] Warning: failed to remove connection tracking: %v", err)
+		}
+		// Untrack topic subscription
+		wasLast, err := s.subscriber.UntrackTopicSubscription(ctx, topicID)
+		if err != nil {
+			log.Printf("[handleAnonymousSubscribe] Warning: failed to untrack topic subscription: %v", err)
+		} else if wasLast {
+			log.Printf("[handleAnonymousSubscribe] Last client disconnected from anonymous topic %s", topicID)
 		}
 	}()
 
@@ -1132,11 +1179,16 @@ func (s *Service) handleAnonymousSubscribe(req *proto.SubscribeRequest, stream g
 	eventsChBufferSize := getChannelBufferSize("RELAY_EVENTS_CHANNEL_BUFFER", 5000)
 	eventsCh := make(chan redis.StreamEvent, eventsChBufferSize)
 
+	// Create throttle channel for flow control
+	throttleCh := make(chan struct{}, 1)
+
 	// Subscribe to Redis stream for anonymous topic
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	if err := s.subscriber.SubscribeToAnonymousTopic(ctx, topicID, eventsCh); err != nil {
+	if err := s.subscriber.SubscribeToAnonymousTopic(ctx, topicID, eventsCh, throttleCh); err != nil {
+		// Untrack topic if subscription failed
+		s.subscriber.UntrackTopicSubscription(ctx, topicID)
 		return status.Error(codes.Internal, fmt.Sprintf("failed to subscribe to anonymous topic: %v", err))
 	}
 
@@ -1211,6 +1263,13 @@ func (s *Service) handleAnonymousSubscribe(req *proto.SubscribeRequest, stream g
 			select {
 			case <-readyCh:
 				// Client is ready for next event
+				// Signal throttle channel to allow reading more events from Redis
+				select {
+				case throttleCh <- struct{}{}:
+					// Successfully signaled
+				default:
+					// Channel already has signal, skip
+				}
 			case <-ctx.Done():
 				return ctx.Err()
 			case err := <-recvErrCh:

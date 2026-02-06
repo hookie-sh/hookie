@@ -43,6 +43,20 @@ func (h *TopicsHandler) HandleTopicWebhook(w http.ResponseWriter, r *http.Reques
 	}
 	defer r.Body.Close()
 
+	// Check if any clients are connected to this topic
+	hasClients, err := h.redisClient.HasConnectedClients(r.Context(), topicID)
+	if err != nil {
+		log.Printf("Error checking connected clients: %v", err)
+		// Continue anyway - don't block webhooks if check fails
+	} else if !hasClients {
+		// No clients connected, drop event
+		log.Printf("[TopicsHandler] Dropping event for topic %s - no connected clients", topicID)
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok", "dropped": "no clients connected"})
+		return
+	}
+
 	// Build fields and publish
 	fields := h.buildWebhookFields(r, body, topicID)
 	streamKey := config.BuildStreamKey(false, topicID)
