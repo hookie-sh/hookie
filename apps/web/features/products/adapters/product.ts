@@ -3,15 +3,16 @@ import { EnhancedProduct, ProductMetadata } from "../types";
 
 export const productsMetadata: ProductMetadata[] = [
   {
-    name: "Free",
-    displayName: "Free",
+    name: "Starter",
+    displayName: "Starter",
     badge: {
       label: "Individual",
       variant: "secondary",
     },
     price: {
-      display: "$0",
-      webhookLimit: "10k webhooks/month",
+      display: "$9",
+      monthly: "per month",
+      webhookLimit: "50k webhooks/month",
     },
     features: [
       { text: "Single organization" },
@@ -33,9 +34,9 @@ export const productsMetadata: ProductMetadata[] = [
     price: {
       display: "$29",
       monthly: "per month",
-      webhookLimit: "1M webhooks included",
+      webhookLimit: "500k webhooks included",
     },
-    previousPlanName: "Free",
+    previousPlanName: "Starter",
     features: [
       { text: "Unlimited applications" },
       { text: "Unlimited team members" },
@@ -58,7 +59,7 @@ export const productsMetadata: ProductMetadata[] = [
     price: {
       display: "$99",
       monthly: "per month",
-      webhookLimit: "10M webhooks included",
+      webhookLimit: "5M webhooks included",
     },
     previousPlanName: "Pro",
     features: [
@@ -151,7 +152,7 @@ export function enhanceStripeProducts(
     });
   }
 
-  // Sort products to match the order in productsMetadata: Free, Pro, Scale, Enterprise
+  // Sort products to match the order in productsMetadata: Starter, Pro, Scale, Enterprise
   return enhanced.sort((a, b) => {
     const orderA = productsMetadata.findIndex((meta) => meta.name === a.name);
     const orderB = productsMetadata.findIndex((meta) => meta.name === b.name);

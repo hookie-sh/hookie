@@ -10,7 +10,7 @@ export async function Plans() {
       {/* Content */}
       <div className="relative container mx-auto px-4">
         <h3 className="text-3xl md:text-4xl font-bold text-center mb-4">Simple, transparent pricing</h3>
-        <p className="text-center text-muted-foreground mb-16 max-w-2xl mx-auto">
+        <p className="text-center text-lg text-muted-foreground mb-16 max-w-2xl mx-auto">
           Start free and scale as you grow. Every plan includes all features from previous tiers—no feature gating, just more capacity.
         </p>
 
