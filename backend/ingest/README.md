@@ -85,7 +85,7 @@ Accepts webhook payloads and publishes them to Redis Streams.
 Events are published to Redis Streams with the key format:
 
 ```
-webhook:events:{topicId}
+topics:{topicId}
 ```
 
 Each stream entry contains the following fields:

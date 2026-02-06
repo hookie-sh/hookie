@@ -64,6 +64,11 @@ func main() {
 	}
 	defer subscriber.Close()
 
+	// Initialize and start Redis stream pruner
+	pruner := redis.NewPruner(subscriber.Client())
+	go pruner.StartBackground(context.Background())
+	log.Printf("Redis stream pruner started")
+
 	// Initialize Clerk verifier
 	verifier, err := auth.NewVerifier(clerkSecretKey)
 	if err != nil {

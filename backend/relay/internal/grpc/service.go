@@ -445,9 +445,9 @@ func (s *Service) Subscribe(req *proto.SubscribeRequest, stream proto.RelayServi
 }
 
 func (s *Service) convertToProtoEvent(ctx context.Context, event redis.StreamEvent) (*proto.Event, error) {
-	// Parse stream key to extract topic_id: webhook:events:{topicId}
+	// Parse stream key to extract topic_id: topics:{topicId}
 	streamKey := event.StreamKey
-	prefix := "webhook:events:"
+	prefix := "topics:"
 	if !strings.HasPrefix(streamKey, prefix) {
 		return nil, fmt.Errorf("invalid stream key format: %s", streamKey)
 	}

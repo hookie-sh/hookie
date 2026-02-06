@@ -67,7 +67,7 @@ func (h *WebhookHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 		contentLength = fmt.Sprintf("%d", len(body))
 	}
 
-	streamKey := fmt.Sprintf("webhook:events:%s", topicId)
+	streamKey := fmt.Sprintf("topics:%s", topicId)
 
 	fields := map[string]interface{}{
 		"method":         r.Method,

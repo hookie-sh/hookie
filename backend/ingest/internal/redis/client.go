@@ -62,6 +62,8 @@ func NewClient(addr string) (*Client, error) {
 func (c *Client) PublishWebhook(ctx context.Context, streamKey string, fields map[string]interface{}) error {
 	err := c.client.XAdd(ctx, &redis.XAddArgs{
 		Stream: streamKey,
+		MaxLen: 1000,
+		Approx: true,
 		Values: fields,
 	}).Err()
 

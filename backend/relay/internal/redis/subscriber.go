@@ -73,7 +73,7 @@ func (s *Subscriber) SubscribeToApplication(topicIDs []string, eventsChan chan<-
 
 	streamKeys := make([]string, 0, len(topicIDs))
 	for _, topicID := range topicIDs {
-		streamKey := fmt.Sprintf("webhook:events:%s", topicID)
+		streamKey := fmt.Sprintf("topics:%s", topicID)
 		streamKeys = append(streamKeys, streamKey)
 	}
 
@@ -96,7 +96,7 @@ func (s *Subscriber) SubscribeToApplication(topicIDs []string, eventsChan chan<-
 
 // SubscribeToTopic subscribes to a specific topic
 func (s *Subscriber) SubscribeToTopic(topicID string, eventsChan chan<- StreamEvent) error {
-	streamKey := fmt.Sprintf("webhook:events:%s", topicID)
+	streamKey := fmt.Sprintf("topics:%s", topicID)
 	return s.subscribeToStream(streamKey, eventsChan)
 }
 
@@ -254,6 +254,10 @@ func (s *Subscriber) monitorPattern(pattern string, eventsChan chan<- StreamEven
 			go s.readFromStreams(newStreams, group, consumer, eventsChan)
 		}
 	}
+}
+
+func (s *Subscriber) Client() *redis.Client {
+	return s.client
 }
 
 func (s *Subscriber) Close() error {
