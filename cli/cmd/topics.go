@@ -32,7 +32,7 @@ var topicsCmd = &cobra.Command{
 			return fmt.Errorf("not authenticated. Run 'hookie login' first")
 		}
 
-		client, err := relay.NewClient(cfg.Token)
+		client, err := relay.NewClient(cfg.Token, debug)
 		if err != nil {
 			return fmt.Errorf("failed to connect to relay: %w", err)
 		}

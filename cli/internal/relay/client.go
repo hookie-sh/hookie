@@ -23,12 +23,14 @@ type Client struct {
 	anonymous bool    // anonymous mode flag
 }
 
-func NewClient(token string) (*Client, error) {
+func NewClient(token string, debug bool) (*Client, error) {
 	relayURL := os.Getenv("HOOKIE_RELAY_URL")
 	if relayURL == "" {
 		relayURL = GetRelayURL()
 	}
-	log.Println("relayURL from env", relayURL)
+	if debug {
+		log.Println("relayURL from env", relayURL)
+	}
 	// if relayURL == "" {
 	// 	relayURL = os.Getenv("HOOKIE_RELAY_URL")
 	// 	log.Println("relayURL from env", relayURL)
@@ -127,10 +129,13 @@ func (c *Client) Subscribe(ctx context.Context, appID, topicID, orgID, machineID
 }
 
 // NewAnonymousClient creates a new relay client for anonymous usage (no auth)
-func NewAnonymousClient() (*Client, error) {
+func NewAnonymousClient(debug bool) (*Client, error) {
 	relayURL := os.Getenv("HOOKIE_RELAY_URL")
 	if relayURL == "" {
 		relayURL = GetRelayURL()
+	}
+	if debug {
+		log.Println("relayURL from env", relayURL)
 	}
 
 	// Determine transport credentials based on URL

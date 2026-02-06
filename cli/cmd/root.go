@@ -48,12 +48,18 @@ var listenCmd = &cobra.Command{
 			return fmt.Errorf("failed to load repository config: %w", err)
 		}
 
+		// Store original CLI flag values to check precedence
+		cliAppID := appID
+		cliTopicID := topicID
+
 		// Priority: CLI flags > repo config > interactive selector
-		// Use repo config values if flags not provided
-		if appID == "" && repoConfig != nil && repoConfig.AppID != "" {
+		// Use repo config values only if:
+		// 1. The CLI flag for that field is empty, AND
+		// 2. The conflicting CLI flag is also empty (to prevent mutual exclusion)
+		if cliAppID == "" && cliTopicID == "" && repoConfig != nil && repoConfig.AppID != "" {
 			appID = repoConfig.AppID
 		}
-		if topicID == "" && repoConfig != nil && repoConfig.TopicID != "" {
+		if cliTopicID == "" && cliAppID == "" && repoConfig != nil && repoConfig.TopicID != "" {
 			topicID = repoConfig.TopicID
 		}
 		if forwardURL == "" && repoConfig != nil && repoConfig.Forward != "" {
@@ -108,7 +114,7 @@ var listenCmd = &cobra.Command{
 		}
 
 		// Authenticated mode
-		client, err := relay.NewClient(cfg.Token)
+		client, err := relay.NewClient(cfg.Token, debug)
 		if err != nil {
 			return fmt.Errorf("failed to connect to relay: %w", err)
 		}

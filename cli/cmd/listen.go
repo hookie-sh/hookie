@@ -38,7 +38,7 @@ func runListen(topicID, appID, orgID string, endpointURL *url.URL, topicForwardM
 		return runAnonymousListen(endpointURL)
 	}
 
-	client, err := relay.NewClient(cfg.Token)
+	client, err := relay.NewClient(cfg.Token, debug)
 	if err != nil {
 		return fmt.Errorf("failed to connect to relay: %w", err)
 	}

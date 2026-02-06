@@ -35,7 +35,7 @@ func runAnonymousListen(endpointURL *url.URL) error {
 		endpointURL = parsedURL
 	}
 	// Connect to relay (no auth)
-	client, err := relay.NewAnonymousClient()
+	client, err := relay.NewAnonymousClient(debug)
 	if err != nil {
 		return fmt.Errorf("failed to connect to relay: %w", err)
 	}
