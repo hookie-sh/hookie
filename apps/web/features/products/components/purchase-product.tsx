@@ -1,18 +1,26 @@
 "use client";
 
 import { useState } from "react";
+import { useAuth } from "@clerk/nextjs";
+import { useRouter, usePathname } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@hookie/ui/components/button";
 import {
   checkoutSessionSchema,
   type CheckoutSessionInput,
-} from "@/features/products/schemas/checkout-session";
+} from "../schemas/checkout-session";
 import type { EnhancedProduct } from "../types";
+import { EnterpriseContactForm } from "./enterprise-contact-form";
 
 export function PurchaseProduct({ product }: { product: EnhancedProduct }) {
+  const { isSignedIn, isLoaded } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isPaywallPage = pathname === "/paywall";
+  const isEnterprise = product.name.toLowerCase() === "enterprise";
 
   const {
     handleSubmit,
@@ -21,12 +29,39 @@ export function PurchaseProduct({ product }: { product: EnhancedProduct }) {
     resolver: zodResolver(checkoutSessionSchema),
     defaultValues: {
       priceId: product.stripePriceId || "",
+      returnUrl: pathname ?? "/",
     },
   });
 
+  // On paywall page, show Enterprise contact form instead of button
+  if (isPaywallPage && isEnterprise) {
+    return <EnterpriseContactForm />;
+  }
+
+  const handleClick = async () => {
+    if (!isLoaded) {
+      return;
+    }
+
+    // Enterprise plan: redirect to paywall if not already there
+    if (isEnterprise && !isPaywallPage) {
+      router.push("/paywall");
+      return;
+    }
+
+    if (!isSignedIn) {
+      // Redirect to sign-up with redirect to paywall
+      router.push(`/sign-up?redirect=${encodeURIComponent("/paywall")}`);
+      return;
+    }
+
+    // If logged in and not Enterprise, proceed with checkout
+    handleSubmit(onSubmit)();
+  };
+
   const onSubmit = async (data: CheckoutSessionInput) => {
-    if (!data.priceId) {
-      setError("Price ID is required");
+    if (!data.priceId || !product.stripePriceId) {
+      setError("This plan is not available for purchase at the moment. Please contact support.");
       return;
     }
 
@@ -39,7 +74,10 @@ export function PurchaseProduct({ product }: { product: EnhancedProduct }) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ priceId: data.priceId }),
+        body: JSON.stringify({
+          priceId: data.priceId,
+          returnUrl: data.returnUrl || pathname || "/",
+        }),
       });
 
       const result = await response.json();
@@ -64,7 +102,7 @@ export function PurchaseProduct({ product }: { product: EnhancedProduct }) {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="w-full">
+    <div className="w-full">
       {error && (
         <div className="mb-2 text-sm text-destructive" role="alert">
           {error}
@@ -76,13 +114,13 @@ export function PurchaseProduct({ product }: { product: EnhancedProduct }) {
         </div>
       )}
       <Button
-        type="submit"
+        onClick={handleClick}
         className="w-full"
         variant={product.cta.variant || "default"}
-        disabled={isLoading || !product.stripePriceId}
+        disabled={!isLoaded || isLoading}
       >
         {isLoading ? "Loading..." : product.cta.label}
       </Button>
-    </form>
+    </div>
   );
 }

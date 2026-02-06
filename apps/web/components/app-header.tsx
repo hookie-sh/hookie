@@ -47,7 +47,7 @@ export function AppHeader() {
               Applications
             </Button>
           </Link>
-          <Link href="/settings/connected-clients">
+          <Link href="/settings">
             <Button
               variant={pathname?.startsWith("/settings") ? "default" : "ghost"}
             >

@@ -103,32 +103,28 @@ export default function ConnectedClientsPage() {
 
   if (isLoading) {
     return (
-      <main className="container mx-auto px-4 py-8">
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Loading connected clients...</p>
-        </div>
-      </main>
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">Loading connected clients...</p>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-4 p-4 bg-destructive/10 text-destructive rounded-md">
-          {error instanceof Error
-            ? error.message
-            : "Failed to load connected clients"}
-        </div>
-      </main>
+      <div className="mb-4 p-4 bg-destructive/10 text-destructive rounded-md">
+        {error instanceof Error
+          ? error.message
+          : "Failed to load connected clients"}
+      </div>
     );
   }
 
   return (
-    <main className="container mx-auto px-4 py-8">
+    <div>
       <div className="mb-8">
         <h2 className="text-3xl font-bold mb-2">Connected Clients</h2>
         <p className="text-muted-foreground mb-4">
-          View and manage CLI clients connected to your account
+          Manage CLI clients connected to your account
         </p>
         {clients && clients.length > 0 && (
           <div className="flex gap-4 text-sm">
@@ -227,6 +223,6 @@ export default function ConnectedClientsPage() {
           </Table>
         </div>
       )}
-    </main>
+    </div>
   );
 }

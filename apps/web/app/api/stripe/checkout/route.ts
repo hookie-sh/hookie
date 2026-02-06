@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
 
     // Validate input
     const validatedData = checkoutSessionSchema.parse(body);
-    const { priceId } = validatedData;
+    const { priceId, returnUrl } = validatedData;
 
     if (!priceId) {
       return NextResponse.json(
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create checkout session
-    const session = await createCheckoutSession(priceId);
+    const session = await createCheckoutSession(priceId, returnUrl);
 
     if (!session.url) {
       return NextResponse.json(

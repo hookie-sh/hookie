@@ -145,11 +145,34 @@ export function enhanceStripeProducts(
         ? stripeProduct.default_price
         : stripeProduct.default_price?.id;
 
+    // Log warning if product doesn't have a price ID
+    if (!priceId) {
+      console.warn(
+        `Product "${stripeProduct.name}" (ID: ${stripeProduct.id}) does not have a default_price set in Stripe.`,
+      );
+    }
+
     enhanced.push({
       ...metadata,
       stripeProductId: stripeProduct.id,
       stripePriceId: priceId,
     });
+  }
+
+  // Ensure all metadata products are included, even if not found in Stripe
+  // This allows the UI to show all plans, even if some aren't configured in Stripe yet
+  for (const metadata of productsMetadata) {
+    const exists = enhanced.some((p) => p.name === metadata.name);
+    if (!exists) {
+      console.warn(
+        `Product "${metadata.name}" not found in Stripe. It will be displayed but cannot be purchased.`,
+      );
+      enhanced.push({
+        ...metadata,
+        stripeProductId: undefined,
+        stripePriceId: undefined,
+      });
+    }
   }
 
   // Sort products to match the order in productsMetadata: Starter, Pro, Scale, Enterprise
