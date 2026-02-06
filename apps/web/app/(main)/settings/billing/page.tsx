@@ -1,6 +1,7 @@
 import { stripe } from "@/clients/stripe.server";
 import { supabase } from "@/clients/supabase.server";
 import { getSubscriptionByOrgId } from "@/features/subscriptions/db/server";
+import { Plans } from "@/features/subscriptions/components/server/plans";
 import { auth } from "@clerk/nextjs/server";
 import { Badge } from "@hookie/ui/components/badge";
 import { Button } from "@hookie/ui/components/button";
@@ -76,20 +77,7 @@ export default async function BillingPage() {
       </div>
 
       {!subscription || !stripeSubscription ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>No Active Subscription</CardTitle>
-            <CardDescription>
-              You don&apos;t have an active subscription. Upgrade to unlock more
-              features.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/paywall">
-              <Button>View Plans</Button>
-            </Link>
-          </CardContent>
-        </Card>
+        <Plans hideHeader />
       ) : (
         <div className="space-y-6">
           <Card>

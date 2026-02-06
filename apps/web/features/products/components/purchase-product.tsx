@@ -7,6 +7,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@hookie/ui/components/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@hookie/ui/components/dialog";
+import {
   checkoutSessionSchema,
   type CheckoutSessionInput,
 } from "../schemas/checkout-session";
@@ -19,6 +26,7 @@ export function PurchaseProduct({ product }: { product: EnhancedProduct }) {
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isEnterpriseDialogOpen, setIsEnterpriseDialogOpen] = useState(false);
   const isPaywallPage = pathname === "/paywall";
   const isEnterprise = product.name.toLowerCase() === "enterprise";
 
@@ -33,19 +41,14 @@ export function PurchaseProduct({ product }: { product: EnhancedProduct }) {
     },
   });
 
-  // On paywall page, show Enterprise contact form instead of button
-  if (isPaywallPage && isEnterprise) {
-    return <EnterpriseContactForm />;
-  }
-
   const handleClick = async () => {
     if (!isLoaded) {
       return;
     }
 
-    // Enterprise plan: redirect to paywall if not already there
-    if (isEnterprise && !isPaywallPage) {
-      router.push("/paywall");
+    // Enterprise plan: open dialog
+    if (isEnterprise) {
+      setIsEnterpriseDialogOpen(true);
       return;
     }
 
@@ -102,25 +105,44 @@ export function PurchaseProduct({ product }: { product: EnhancedProduct }) {
   };
 
   return (
-    <div className="w-full">
-      {error && (
-        <div className="mb-2 text-sm text-destructive" role="alert">
-          {error}
-        </div>
+    <>
+      <div className="w-full">
+        {error && (
+          <div className="mb-2 text-sm text-destructive" role="alert">
+            {error}
+          </div>
+        )}
+        {errors.priceId && (
+          <div className="mb-2 text-sm text-destructive" role="alert">
+            {errors.priceId.message}
+          </div>
+        )}
+        <Button
+          onClick={handleClick}
+          className="w-full"
+          variant={product.cta.variant || "default"}
+          disabled={!isLoaded || isLoading}
+        >
+          {isLoading ? "Loading..." : product.cta.label}
+        </Button>
+      </div>
+
+      {isEnterprise && (
+        <Dialog open={isEnterpriseDialogOpen} onOpenChange={setIsEnterpriseDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Contact Sales</DialogTitle>
+              <DialogDescription>
+                Get in touch with our team to discuss Enterprise pricing and
+                features.
+              </DialogDescription>
+            </DialogHeader>
+            <EnterpriseContactForm
+              onSuccess={() => setIsEnterpriseDialogOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
       )}
-      {errors.priceId && (
-        <div className="mb-2 text-sm text-destructive" role="alert">
-          {errors.priceId.message}
-        </div>
-      )}
-      <Button
-        onClick={handleClick}
-        className="w-full"
-        variant={product.cta.variant || "default"}
-        disabled={!isLoaded || isLoading}
-      >
-        {isLoading ? "Loading..." : product.cta.label}
-      </Button>
-    </div>
+    </>
   );
 }

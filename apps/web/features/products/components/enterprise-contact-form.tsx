@@ -9,17 +9,14 @@ import {
   contactEnterpriseSchema,
   type ContactEnterpriseInput,
 } from "../schemas/contact-enterprise";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@hookie/ui/components/card";
 import { Input } from "@hookie/ui/components/input";
 import { Label } from "@hookie/ui/components/label";
 
-export function EnterpriseContactForm() {
+interface EnterpriseContactFormProps {
+  onSuccess?: () => void;
+}
+
+export function EnterpriseContactForm({ onSuccess }: EnterpriseContactFormProps) {
   const { user } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +59,10 @@ export function EnterpriseContactForm() {
 
       setSuccess(true);
       reset();
+      // Close dialog after a short delay to show success message
+      setTimeout(() => {
+        onSuccess?.();
+      }, 2000);
     } catch (err) {
       setError(
         err instanceof Error
@@ -75,29 +76,20 @@ export function EnterpriseContactForm() {
 
   if (success) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Message Sent</CardTitle>
-          <CardDescription>
+      <div className="space-y-4">
+        <div className="text-center space-y-2">
+          <h3 className="text-lg font-semibold">Message Sent</h3>
+          <p className="text-sm text-muted-foreground">
             Thank you for your interest in Enterprise. We'll get back to you
             soon.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+          </p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Contact Sales</CardTitle>
-        <CardDescription>
-          Get in touch with our team to discuss Enterprise pricing and
-          features.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {error && (
             <div className="text-sm text-destructive" role="alert">
               {error}
@@ -167,7 +159,5 @@ export function EnterpriseContactForm() {
             {isLoading ? "Sending..." : "Send Message"}
           </Button>
         </form>
-      </CardContent>
-    </Card>
   );
 }
