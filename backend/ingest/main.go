@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -76,14 +77,48 @@ func main() {
 		port = "4000"
 	}
 
+	// Configure timeouts - make them configurable for high load scenarios
+	readTimeout := 10 * time.Second
+	if readTimeoutStr := os.Getenv("HTTP_READ_TIMEOUT"); readTimeoutStr != "" {
+		if duration, err := time.ParseDuration(readTimeoutStr); err == nil {
+			readTimeout = duration
+		}
+	}
+
+	writeTimeout := 10 * time.Second
+	if writeTimeoutStr := os.Getenv("HTTP_WRITE_TIMEOUT"); writeTimeoutStr != "" {
+		if duration, err := time.ParseDuration(writeTimeoutStr); err == nil {
+			writeTimeout = duration
+		}
+	}
+
+	idleTimeout := 120 * time.Second
+	if idleTimeoutStr := os.Getenv("HTTP_IDLE_TIMEOUT"); idleTimeoutStr != "" {
+		if duration, err := time.ParseDuration(idleTimeoutStr); err == nil {
+			idleTimeout = duration
+		}
+	}
+
+	// For high concurrency (100+ concurrent connections), increase timeouts
+	// This prevents connection exhaustion under load
+	maxHeaderBytes := 1 << 20 // 1MB
+	if maxHeaderBytesStr := os.Getenv("HTTP_MAX_HEADER_BYTES"); maxHeaderBytesStr != "" {
+		if mb, err := strconv.Atoi(maxHeaderBytesStr); err == nil && mb > 0 {
+			maxHeaderBytes = mb << 20 // Convert MB to bytes
+		}
+	}
+
 	server := &http.Server{
 		Addr:           ":" + port,
 		Handler:        handler,
-		MaxHeaderBytes: 1 << 20, // 1MB
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		IdleTimeout:   120 * time.Second,
+		MaxHeaderBytes: maxHeaderBytes,
+		ReadTimeout:    readTimeout,
+		WriteTimeout:  writeTimeout,
+		IdleTimeout:    idleTimeout,
 	}
+
+	log.Printf("HTTP server configured: ReadTimeout=%v, WriteTimeout=%v, IdleTimeout=%v, MaxHeaderBytes=%d", 
+		readTimeout, writeTimeout, idleTimeout, maxHeaderBytes)
 
 	go func() {
 		log.Printf("Server starting on port %s", port)

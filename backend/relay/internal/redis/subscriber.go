@@ -39,6 +39,19 @@ func NewSubscriber(addr string) (*Subscriber, error) {
 		opts.Username = username
 	}
 
+	// Configure connection pool for high concurrency
+	opts.PoolSize = 100 // Default is 10 * numCPU, but we want more for high load
+	opts.MinIdleConns = 10
+	opts.MaxRetries = 3
+	opts.PoolTimeout = 4 * time.Second
+
+	// Allow pool size to be overridden via environment variable
+	if poolSizeStr := os.Getenv("REDIS_POOL_SIZE"); poolSizeStr != "" {
+		if poolSize, err := strconv.Atoi(poolSizeStr); err == nil && poolSize > 0 {
+			opts.PoolSize = poolSize
+		}
+	}
+
 	rdb := redis.NewClient(opts)
 
 	ctx := context.Background()
@@ -50,6 +63,7 @@ func NewSubscriber(addr string) (*Subscriber, error) {
 	if opts.DB > 0 {
 		log.Printf("Using Redis database %d", opts.DB)
 	}
+	log.Printf("Redis pool config: PoolSize=%d, MinIdleConns=%d, PoolTimeout=%v", opts.PoolSize, opts.MinIdleConns, opts.PoolTimeout)
 
 	return &Subscriber{
 		client: rdb,
@@ -66,7 +80,7 @@ type StreamEvent struct {
 
 // SubscribeToApplication subscribes to all topics for an application
 // topicIDs should be a list of topic IDs that belong to the application
-func (s *Subscriber) SubscribeToApplication(topicIDs []string, eventsChan chan<- StreamEvent) error {
+func (s *Subscriber) SubscribeToApplication(ctx context.Context, topicIDs []string, eventsChan chan<- StreamEvent) error {
 	if len(topicIDs) == 0 {
 		return nil
 	}
@@ -82,22 +96,22 @@ func (s *Subscriber) SubscribeToApplication(topicIDs []string, eventsChan chan<-
 	consumerName := fmt.Sprintf("consumer-%d", time.Now().UnixNano())
 
 	for _, streamKey := range streamKeys {
-		err := s.client.XGroupCreateMkStream(s.ctx, streamKey, consumerGroup, "0").Err()
+		err := s.client.XGroupCreateMkStream(ctx, streamKey, consumerGroup, "0").Err()
 		if err != nil && !strings.Contains(err.Error(), "BUSYGROUP") {
 			log.Printf("Warning: failed to create consumer group for %s: %v", streamKey, err)
 		}
 	}
 
-	// Start reading from all streams
-	go s.readFromStreams(streamKeys, consumerGroup, consumerName, eventsChan)
+	// Start reading from all streams with context
+	go s.readFromStreams(ctx, streamKeys, consumerGroup, consumerName, eventsChan)
 
 	return nil
 }
 
 // SubscribeToTopic subscribes to a specific topic
-func (s *Subscriber) SubscribeToTopic(topicID string, eventsChan chan<- StreamEvent) error {
+func (s *Subscriber) SubscribeToTopic(ctx context.Context, topicID string, eventsChan chan<- StreamEvent) error {
 	streamKey := fmt.Sprintf("topics:%s", topicID)
-	return s.subscribeToStream(streamKey, eventsChan)
+	return s.subscribeToStream(ctx, streamKey, eventsChan)
 }
 
 // subscribeToPattern monitors multiple streams matching a pattern
@@ -126,8 +140,8 @@ func (s *Subscriber) subscribeToPattern(pattern string, eventsChan chan<- Stream
 		}
 	}
 
-	// Start reading from all streams
-	go s.readFromStreams(keys, consumerGroup, consumerName, eventsChan)
+	// Start reading from all streams (using background context since this is internal)
+	go s.readFromStreams(s.ctx, keys, consumerGroup, consumerName, eventsChan)
 
 	// Monitor for new streams matching the pattern
 	go s.monitorPattern(pattern, eventsChan, consumerGroup, consumerName)
@@ -136,22 +150,30 @@ func (s *Subscriber) subscribeToPattern(pattern string, eventsChan chan<- Stream
 }
 
 // subscribeToStream subscribes to a single stream
-func (s *Subscriber) subscribeToStream(streamKey string, eventsChan chan<- StreamEvent) error {
+func (s *Subscriber) subscribeToStream(ctx context.Context, streamKey string, eventsChan chan<- StreamEvent) error {
 	consumerGroup := "relay-consumers"
 	consumerName := fmt.Sprintf("consumer-%d", time.Now().UnixNano())
 
 	// Create consumer group
-	err := s.client.XGroupCreateMkStream(s.ctx, streamKey, consumerGroup, "0").Err()
+	err := s.client.XGroupCreateMkStream(ctx, streamKey, consumerGroup, "0").Err()
 	if err != nil && !strings.Contains(err.Error(), "BUSYGROUP") {
 		return fmt.Errorf("failed to create consumer group: %w", err)
 	}
 
-	go s.readFromStream(streamKey, consumerGroup, consumerName, eventsChan)
+	go s.readFromStream(ctx, streamKey, consumerGroup, consumerName, eventsChan)
 	return nil
 }
 
-func (s *Subscriber) readFromStreams(streams []string, group, consumer string, eventsChan chan<- StreamEvent) {
+func (s *Subscriber) readFromStreams(ctx context.Context, streams []string, group, consumer string, eventsChan chan<- StreamEvent) {
 	for {
+		// Check context cancellation before blocking
+		select {
+		case <-ctx.Done():
+			log.Printf("[readFromStreams] Context cancelled, stopping read from streams")
+			return
+		default:
+		}
+
 		// XReadGroup requires: all stream keys first, then all IDs
 		// Format: [stream1, stream2, ..., streamN, id1, id2, ..., idN]
 		streamsList := make([]string, 0, len(streams)*2)
@@ -162,7 +184,7 @@ func (s *Subscriber) readFromStreams(streams []string, group, consumer string, e
 			streamsList = append(streamsList, ">")
 		}
 
-		results, err := s.client.XReadGroup(s.ctx, &redis.XReadGroupArgs{
+		results, err := s.client.XReadGroup(ctx, &redis.XReadGroupArgs{
 			Group:    group,
 			Consumer: consumer,
 			Streams:  streamsList,
@@ -174,30 +196,76 @@ func (s *Subscriber) readFromStreams(streams []string, group, consumer string, e
 			continue
 		}
 		if err != nil {
+			// Check if context was cancelled
+			if ctx.Err() != nil {
+				log.Printf("[readFromStreams] Context cancelled during read: %v", ctx.Err())
+				return
+			}
 			log.Printf("Error reading from streams: %v", err)
 			time.Sleep(time.Second)
 			continue
 		}
 
 		for _, stream := range results {
+			msgCount := len(stream.Messages)
+			if msgCount > 0 {
+				log.Printf("[readFromStreams] Read %d messages from stream %s", msgCount, stream.Stream)
+			}
 			for _, msg := range stream.Messages {
+				// Check context cancellation before processing each message
+				select {
+				case <-ctx.Done():
+					log.Printf("[readFromStreams] Context cancelled, stopping message processing")
+					return
+				default:
+				}
+
 				fields := make(map[string]string)
 				for k, v := range msg.Values {
 					fields[k] = fmt.Sprintf("%v", v)
 				}
-				eventsChan <- StreamEvent{
+				// Build event
+				event := StreamEvent{
 					StreamKey: stream.Stream,
 					ID:        msg.ID,
 					Fields:    fields,
+				}
+				
+				// Block until channel has space OR context is cancelled
+				// This applies backpressure upstream while respecting cancellation
+				queueLen := len(eventsChan)
+				queueCap := cap(eventsChan)
+				if queueLen > int(float64(queueCap)*0.8) {
+					log.Printf("Warning: events channel getting full (%d/%d) for stream %s", queueLen, queueCap, stream.Stream)
+				}
+				
+				// Use select to check context cancellation while blocking on channel send
+				select {
+				case eventsChan <- event:
+					// Successfully queued - acknowledge message
+					if err := s.client.XAck(ctx, stream.Stream, group, msg.ID).Err(); err != nil {
+						log.Printf("Warning: failed to acknowledge message %s from stream %s: %v", msg.ID, stream.Stream, err)
+					}
+				case <-ctx.Done():
+					log.Printf("[readFromStreams] Context cancelled while queuing event, stopping")
+					return
 				}
 			}
 		}
 	}
 }
 
-func (s *Subscriber) readFromStream(streamKey, group, consumer string, eventsChan chan<- StreamEvent) {
+func (s *Subscriber) readFromStream(ctx context.Context, streamKey, group, consumer string, eventsChan chan<- StreamEvent) {
 	for {
-		results, err := s.client.XReadGroup(s.ctx, &redis.XReadGroupArgs{
+		// Check context cancellation before blocking
+		select {
+		case <-ctx.Done():
+			log.Printf("[readFromStream] Context cancelled, stopping read from stream %s", streamKey)
+			return
+		default:
+		}
+
+		results, err := s.client.XReadGroup(ctx, &redis.XReadGroupArgs{
 			Group:    group,
 			Consumer: consumer,
 			Streams:  []string{streamKey, ">"},
@@ -209,21 +277,59 @@ func (s *Subscriber) readFromStream(streamKey, group, consumer string, eventsCha
 			continue
 		}
 		if err != nil {
+			// Check if context was cancelled
+			if ctx.Err() != nil {
+				log.Printf("[readFromStream] Context cancelled during read: %v", ctx.Err())
+				return
+			}
 			log.Printf("Error reading from stream %s: %v", streamKey, err)
 			time.Sleep(time.Second)
 			continue
 		}
 
 		for _, stream := range results {
+			msgCount := len(stream.Messages)
+			if msgCount > 0 {
+				log.Printf("[readFromStream] Read %d messages from stream %s", msgCount, streamKey)
+			}
 			for _, msg := range stream.Messages {
+				// Check context cancellation before processing each message
+				select {
+				case <-ctx.Done():
+					log.Printf("[readFromStream] Context cancelled, stopping message processing for stream %s", streamKey)
+					return
+				default:
+				}
+
 				fields := make(map[string]string)
 				for k, v := range msg.Values {
 					fields[k] = fmt.Sprintf("%v", v)
 				}
-				eventsChan <- StreamEvent{
+				// Build event
+				event := StreamEvent{
 					StreamKey: streamKey,
 					ID:        msg.ID,
 					Fields:    fields,
+				}
+				
+				// Block until channel has space OR context is cancelled
+				// This applies backpressure upstream while respecting cancellation
+				queueLen := len(eventsChan)
+				queueCap := cap(eventsChan)
+				if queueLen > int(float64(queueCap)*0.8) {
+					log.Printf("Warning: events channel getting full (%d/%d) for stream %s", queueLen, queueCap, streamKey)
+				}
+				
+				// Use select to check context cancellation while blocking on channel send
+				select {
+				case eventsChan <- event:
+					// Successfully queued - acknowledge message
+					if err := s.client.XAck(ctx, streamKey, group, msg.ID).Err(); err != nil {
+						log.Printf("Warning: failed to acknowledge message %s from stream %s: %v", msg.ID, streamKey, err)
+					}
+				case <-ctx.Done():
+					log.Printf("[readFromStream] Context cancelled while queuing event for stream %s, stopping", streamKey)
+					return
 				}
 			}
 		}
@@ -256,7 +362,7 @@ func (s *Subscriber) monitorPattern(pattern string, eventsChan chan<- StreamEven
 		}
 
 		if len(newStreams) > 0 {
-			go s.readFromStreams(newStreams, group, consumer, eventsChan)
+			go s.readFromStreams(s.ctx, newStreams, group, consumer, eventsChan)
 		}
 	}
 }
@@ -316,7 +422,7 @@ func (s *Subscriber) CreateAnonChannel(ctx context.Context, topicID, ip string, 
 	expiresAtMs := expiresAt.UnixMilli()
 	createdAt := time.Now().UTC().Format(time.RFC3339)
 	expiresAtStr := expiresAt.UTC().Format(time.RFC3339)
-	ttl := expiresAt.Sub(time.Now())
+	ttl := time.Until(expiresAt)
 
 	pipe := s.client.Pipeline()
 	// Add to sorted set for expiry tracking
@@ -356,9 +462,9 @@ func (s *Subscriber) RemoveAnonConnection(ctx context.Context, topicID string) e
 }
 
 // SubscribeToAnonymousTopic subscribes to an anonymous topic stream
-func (s *Subscriber) SubscribeToAnonymousTopic(topicID string, eventsChan chan<- StreamEvent) error {
+func (s *Subscriber) SubscribeToAnonymousTopic(ctx context.Context, topicID string, eventsChan chan<- StreamEvent) error {
 	streamKey := StreamKey(topicID, true)
-	return s.subscribeToStream(streamKey, eventsChan)
+	return s.subscribeToStream(ctx, streamKey, eventsChan)
 }
 
 

@@ -114,14 +114,28 @@ func (c *Client) ListTopics(ctx context.Context, appID string) ([]*proto.Topic, 
 	return resp.Topics, nil
 }
 
-func (c *Client) Subscribe(ctx context.Context, appID, topicID, orgID, machineID string) (proto.RelayService_SubscribeClient, error) {
-	req := &proto.SubscribeRequest{
-		AppId:     appID,
-		TopicId:   topicID,
-		OrgId:     orgID,
-		MachineId: machineID,
+func (c *Client) Subscribe(ctx context.Context, appID, topicID, orgID, machineID string) (grpc.BidiStreamingClient[proto.SubscribeMessage, proto.Event], error) {
+	stream, err := c.client.Subscribe(c.createContext(ctx))
+	if err != nil {
+		return nil, err
 	}
-	return c.client.Subscribe(c.createContext(ctx), req)
+
+	// Send initial SubscribeRequest
+	req := &proto.SubscribeMessage{
+		Message: &proto.SubscribeMessage_Subscribe{
+			Subscribe: &proto.SubscribeRequest{
+				AppId:     appID,
+				TopicId:   topicID,
+				OrgId:     orgID,
+				MachineId: machineID,
+			},
+		},
+	}
+	if err := stream.Send(req); err != nil {
+		return nil, fmt.Errorf("failed to send SubscribeRequest: %w", err)
+	}
+
+	return stream, nil
 }
 
 // NewAnonymousClient creates a new relay client for anonymous usage (no auth)

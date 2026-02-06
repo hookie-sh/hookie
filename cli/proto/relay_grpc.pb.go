@@ -32,7 +32,9 @@ const (
 // Relay service for streaming webhook events
 type RelayServiceClient interface {
 	// Subscribe to webhook events for an application and/or topics
-	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Event], error)
+	// First message must be SubscribeRequest to establish subscription
+	// Subsequent messages should be Ready to signal readiness for next event
+	Subscribe(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[SubscribeMessage, Event], error)
 	// List applications for the authenticated user
 	ListApplications(ctx context.Context, in *ListApplicationsRequest, opts ...grpc.CallOption) (*ListApplicationsResponse, error)
 	// List topics for a specific application, or all topics across all accessible applications
@@ -49,24 +51,18 @@ func NewRelayServiceClient(cc grpc.ClientConnInterface) RelayServiceClient {
 	return &relayServiceClient{cc}
 }
 
-func (c *relayServiceClient) Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Event], error) {
+func (c *relayServiceClient) Subscribe(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[SubscribeMessage, Event], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &RelayService_ServiceDesc.Streams[0], RelayService_Subscribe_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[SubscribeRequest, Event]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
+	x := &grpc.GenericClientStream[SubscribeMessage, Event]{ClientStream: stream}
 	return x, nil
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RelayService_SubscribeClient = grpc.ServerStreamingClient[Event]
+type RelayService_SubscribeClient = grpc.BidiStreamingClient[SubscribeMessage, Event]
 
 func (c *relayServiceClient) ListApplications(ctx context.Context, in *ListApplicationsRequest, opts ...grpc.CallOption) (*ListApplicationsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -105,7 +101,9 @@ func (c *relayServiceClient) CreateAnonymousChannel(ctx context.Context, in *Cre
 // Relay service for streaming webhook events
 type RelayServiceServer interface {
 	// Subscribe to webhook events for an application and/or topics
-	Subscribe(*SubscribeRequest, grpc.ServerStreamingServer[Event]) error
+	// First message must be SubscribeRequest to establish subscription
+	// Subsequent messages should be Ready to signal readiness for next event
+	Subscribe(grpc.BidiStreamingServer[SubscribeMessage, Event]) error
 	// List applications for the authenticated user
 	ListApplications(context.Context, *ListApplicationsRequest) (*ListApplicationsResponse, error)
 	// List topics for a specific application, or all topics across all accessible applications
@@ -122,7 +120,7 @@ type RelayServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedRelayServiceServer struct{}
 
-func (UnimplementedRelayServiceServer) Subscribe(*SubscribeRequest, grpc.ServerStreamingServer[Event]) error {
+func (UnimplementedRelayServiceServer) Subscribe(grpc.BidiStreamingServer[SubscribeMessage, Event]) error {
 	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
 }
 func (UnimplementedRelayServiceServer) ListApplications(context.Context, *ListApplicationsRequest) (*ListApplicationsResponse, error) {
@@ -156,15 +154,11 @@ func RegisterRelayServiceServer(s grpc.ServiceRegistrar, srv RelayServiceServer)
 }
 
 func _RelayService_Subscribe_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(SubscribeRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(RelayServiceServer).Subscribe(m, &grpc.GenericServerStream[SubscribeRequest, Event]{ServerStream: stream})
+	return srv.(RelayServiceServer).Subscribe(&grpc.GenericServerStream[SubscribeMessage, Event]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RelayService_SubscribeServer = grpc.ServerStreamingServer[Event]
+type RelayService_SubscribeServer = grpc.BidiStreamingServer[SubscribeMessage, Event]
 
 func _RelayService_ListApplications_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListApplicationsRequest)
@@ -245,6 +239,7 @@ var RelayService_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "Subscribe",
 			Handler:       _RelayService_Subscribe_Handler,
 			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "proto/relay.proto",

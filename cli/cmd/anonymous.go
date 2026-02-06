@@ -7,12 +7,14 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
 	"time"
 
 	"github.com/fatih/color"
 	"github.com/hookie/cli/internal/config"
 	"github.com/hookie/cli/internal/relay"
+	"github.com/hookie/cli/proto"
 )
 
 // runAnonymousListen handles anonymous ephemeral channel listening
@@ -48,9 +50,16 @@ func runAnonymousListen(endpointURL *url.URL) error {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	go func() {
-		<-sigChan
-		fmt.Println("\nShutting down...")
+		sig := <-sigChan
+		fmt.Printf("\nReceived %v, shutting down...\n", sig)
+		// Cancel context first to stop all goroutines
 		cancel()
+		// Close client connection to unblock Recv() calls
+		client.Close()
+		// Give a short timeout for graceful shutdown, then force exit
+		time.Sleep(2 * time.Second)
+		fmt.Println("Forcing exit...")
+		os.Exit(0)
 	}()
 
 	// Create anonymous channel via gRPC
@@ -120,13 +129,26 @@ func runAnonymousListen(endpointURL *url.URL) error {
 	}
 	fmt.Println("Press Ctrl+C to stop\n")
 
+	// Reset event counter for new session
+	atomic.StoreUint64(&eventCounter, 0)
+	
+	// Start forwarding logger to ensure sequential output
+	forwardingState := startForwardingLogger(ctx)
+
 	// Create HTTP client with timeout for forwarding
 	httpClient := &http.Client{
 		Timeout: 10 * time.Second,
 	}
 
-	// Stream events
+	// Process events with flow control: receive → process → send ready → receive next
 	for {
+		select {
+		case <-ctx.Done():
+			return nil // Context cancelled
+		default:
+		}
+
+		// Receive event from stream
 		event, err := stream.Recv()
 		if err != nil {
 			if ctx.Err() != nil {
@@ -141,11 +163,45 @@ func runAnonymousListen(endpointURL *url.URL) error {
 			return nil
 		}
 
-		printEvent(event, debug)
+		// Get unique event ID for matching forwarding start/completion
+		eventID := atomic.AddUint64(&eventCounter, 1)
 
-		// Forward event to endpoint if provided
+		// Flush any pending forwarding results for earlier events before printing new event
+		// This ensures forwarding completions appear right after their events, before the next event
+		forwardingState.flushPendingResults(eventID - 1)
+
+		// Protect event printing and forwarding log together to maintain order
+		logMutex.Lock()
+		printEvent(event, debug)
 		if endpointURL != nil {
-			go forwardEvent(httpClient, event, endpointURL)
+			// Log forwarding attempt immediately to maintain log order
+			fmt.Printf("  %s forwarding to %s... [%d]\n",
+				color.YellowString("→"),
+				color.CyanString(endpointURL.String()),
+				eventID,
+			)
+		}
+		logMutex.Unlock()
+
+		// Flush again after printing to catch any completions that arrived immediately
+		forwardingState.flushPendingResults(eventID)
+
+		if endpointURL != nil {
+			go forwardEvent(httpClient, event, endpointURL, eventID, event.AppId, event.TopicId)
+		}
+
+		// Send Ready signal to relay to indicate we're ready for next event
+		// This implements flow control: CLI controls the rate
+		readyMsg := &proto.SubscribeMessage{
+			Message: &proto.SubscribeMessage_Ready{
+				Ready: &proto.Ready{},
+			},
+		}
+		if err := stream.Send(readyMsg); err != nil {
+			if ctx.Err() != nil {
+				return nil // Context cancelled
+			}
+			return fmt.Errorf("failed to send Ready signal: %w", err)
 		}
 	}
 }

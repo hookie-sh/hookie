@@ -773,6 +773,127 @@ func (x *AnonymousLimits) GetMaxPayloadBytes() int64 {
 	return 0
 }
 
+// Message sent from client to relay during Subscribe stream
+// First message must be SubscribeRequest, subsequent messages should be Ready
+type SubscribeMessage struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Message:
+	//
+	//	*SubscribeMessage_Subscribe
+	//	*SubscribeMessage_Ready
+	Message       isSubscribeMessage_Message `protobuf_oneof:"message"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubscribeMessage) Reset() {
+	*x = SubscribeMessage{}
+	mi := &file_proto_relay_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubscribeMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubscribeMessage) ProtoMessage() {}
+
+func (x *SubscribeMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_relay_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubscribeMessage.ProtoReflect.Descriptor instead.
+func (*SubscribeMessage) Descriptor() ([]byte, []int) {
+	return file_proto_relay_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *SubscribeMessage) GetMessage() isSubscribeMessage_Message {
+	if x != nil {
+		return x.Message
+	}
+	return nil
+}
+
+func (x *SubscribeMessage) GetSubscribe() *SubscribeRequest {
+	if x != nil {
+		if x, ok := x.Message.(*SubscribeMessage_Subscribe); ok {
+			return x.Subscribe
+		}
+	}
+	return nil
+}
+
+func (x *SubscribeMessage) GetReady() *Ready {
+	if x != nil {
+		if x, ok := x.Message.(*SubscribeMessage_Ready); ok {
+			return x.Ready
+		}
+	}
+	return nil
+}
+
+type isSubscribeMessage_Message interface {
+	isSubscribeMessage_Message()
+}
+
+type SubscribeMessage_Subscribe struct {
+	Subscribe *SubscribeRequest `protobuf:"bytes,1,opt,name=subscribe,proto3,oneof"`
+}
+
+type SubscribeMessage_Ready struct {
+	Ready *Ready `protobuf:"bytes,2,opt,name=ready,proto3,oneof"`
+}
+
+func (*SubscribeMessage_Subscribe) isSubscribeMessage_Message() {}
+
+func (*SubscribeMessage_Ready) isSubscribeMessage_Message() {}
+
+// Ready signal sent by client to indicate readiness for next event
+type Ready struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Ready) Reset() {
+	*x = Ready{}
+	mi := &file_proto_relay_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Ready) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Ready) ProtoMessage() {}
+
+func (x *Ready) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_relay_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Ready.ProtoReflect.Descriptor instead.
+func (*Ready) Descriptor() ([]byte, []int) {
+	return file_proto_relay_proto_rawDescGZIP(), []int{12}
+}
+
 var File_proto_relay_proto protoreflect.FileDescriptor
 
 const file_proto_relay_proto_rawDesc = "" +
@@ -840,9 +961,14 @@ const file_proto_relay_proto_rawDesc = "" +
 	"\x0fAnonymousLimits\x12(\n" +
 	"\x10requests_per_day\x18\x01 \x01(\x03R\x0erequestsPerDay\x12.\n" +
 	"\x13requests_per_minute\x18\x02 \x01(\x03R\x11requestsPerMinute\x12*\n" +
-	"\x11max_payload_bytes\x18\x03 \x01(\x03R\x0fmaxPayloadBytes2\xc3\x02\n" +
-	"\fRelayService\x124\n" +
-	"\tSubscribe\x12\x17.relay.SubscribeRequest\x1a\f.relay.Event0\x01\x12S\n" +
+	"\x11max_payload_bytes\x18\x03 \x01(\x03R\x0fmaxPayloadBytes\"|\n" +
+	"\x10SubscribeMessage\x127\n" +
+	"\tsubscribe\x18\x01 \x01(\v2\x17.relay.SubscribeRequestH\x00R\tsubscribe\x12$\n" +
+	"\x05ready\x18\x02 \x01(\v2\f.relay.ReadyH\x00R\x05readyB\t\n" +
+	"\amessage\"\a\n" +
+	"\x05Ready2\xc5\x02\n" +
+	"\fRelayService\x126\n" +
+	"\tSubscribe\x12\x17.relay.SubscribeMessage\x1a\f.relay.Event(\x010\x01\x12S\n" +
 	"\x10ListApplications\x12\x1e.relay.ListApplicationsRequest\x1a\x1f.relay.ListApplicationsResponse\x12A\n" +
 	"\n" +
 	"ListTopics\x12\x18.relay.ListTopicsRequest\x1a\x19.relay.ListTopicsResponse\x12e\n" +
@@ -860,7 +986,7 @@ func file_proto_relay_proto_rawDescGZIP() []byte {
 	return file_proto_relay_proto_rawDescData
 }
 
-var file_proto_relay_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_proto_relay_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_proto_relay_proto_goTypes = []any{
 	(*SubscribeRequest)(nil),               // 0: relay.SubscribeRequest
 	(*Event)(nil),                          // 1: relay.Event
@@ -873,24 +999,28 @@ var file_proto_relay_proto_goTypes = []any{
 	(*CreateAnonymousChannelRequest)(nil),  // 8: relay.CreateAnonymousChannelRequest
 	(*CreateAnonymousChannelResponse)(nil), // 9: relay.CreateAnonymousChannelResponse
 	(*AnonymousLimits)(nil),                // 10: relay.AnonymousLimits
+	(*SubscribeMessage)(nil),               // 11: relay.SubscribeMessage
+	(*Ready)(nil),                          // 12: relay.Ready
 }
 var file_proto_relay_proto_depIdxs = []int32{
 	4,  // 0: relay.ListApplicationsResponse.applications:type_name -> relay.Application
 	7,  // 1: relay.ListTopicsResponse.topics:type_name -> relay.Topic
 	10, // 2: relay.CreateAnonymousChannelResponse.limits:type_name -> relay.AnonymousLimits
-	0,  // 3: relay.RelayService.Subscribe:input_type -> relay.SubscribeRequest
-	2,  // 4: relay.RelayService.ListApplications:input_type -> relay.ListApplicationsRequest
-	5,  // 5: relay.RelayService.ListTopics:input_type -> relay.ListTopicsRequest
-	8,  // 6: relay.RelayService.CreateAnonymousChannel:input_type -> relay.CreateAnonymousChannelRequest
-	1,  // 7: relay.RelayService.Subscribe:output_type -> relay.Event
-	3,  // 8: relay.RelayService.ListApplications:output_type -> relay.ListApplicationsResponse
-	6,  // 9: relay.RelayService.ListTopics:output_type -> relay.ListTopicsResponse
-	9,  // 10: relay.RelayService.CreateAnonymousChannel:output_type -> relay.CreateAnonymousChannelResponse
-	7,  // [7:11] is the sub-list for method output_type
-	3,  // [3:7] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	0,  // 3: relay.SubscribeMessage.subscribe:type_name -> relay.SubscribeRequest
+	12, // 4: relay.SubscribeMessage.ready:type_name -> relay.Ready
+	11, // 5: relay.RelayService.Subscribe:input_type -> relay.SubscribeMessage
+	2,  // 6: relay.RelayService.ListApplications:input_type -> relay.ListApplicationsRequest
+	5,  // 7: relay.RelayService.ListTopics:input_type -> relay.ListTopicsRequest
+	8,  // 8: relay.RelayService.CreateAnonymousChannel:input_type -> relay.CreateAnonymousChannelRequest
+	1,  // 9: relay.RelayService.Subscribe:output_type -> relay.Event
+	3,  // 10: relay.RelayService.ListApplications:output_type -> relay.ListApplicationsResponse
+	6,  // 11: relay.RelayService.ListTopics:output_type -> relay.ListTopicsResponse
+	9,  // 12: relay.RelayService.CreateAnonymousChannel:output_type -> relay.CreateAnonymousChannelResponse
+	9,  // [9:13] is the sub-list for method output_type
+	5,  // [5:9] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_proto_relay_proto_init() }
@@ -898,13 +1028,17 @@ func file_proto_relay_proto_init() {
 	if File_proto_relay_proto != nil {
 		return
 	}
+	file_proto_relay_proto_msgTypes[11].OneofWrappers = []any{
+		(*SubscribeMessage_Subscribe)(nil),
+		(*SubscribeMessage_Ready)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_relay_proto_rawDesc), len(file_proto_relay_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

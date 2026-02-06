@@ -17,6 +17,7 @@ import (
 	"github.com/hookie/relay/internal/supabase"
 	"github.com/hookie/relay/proto"
 	"github.com/segmentio/ksuid"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
@@ -39,13 +40,25 @@ type Service struct {
 	// Map of database machine ID to machine+org contexts
 	// This allows us to find all contexts for a given database machine ID
 	dbMachineToContexts sync.Map // map[string][]string (machineID -> []machineContextKey)
+	
+	// Cache for topicID -> appID lookups to avoid repeated database calls
+	topicAppCache sync.Map // map[string]string (topicID -> appID)
+}
+
+// getChannelBufferSize returns the channel buffer size from environment variable or default
+func getChannelBufferSize(envVar string, defaultSize int) int {
+	if sizeStr := os.Getenv(envVar); sizeStr != "" {
+		if size, err := strconv.Atoi(sizeStr); err == nil && size > 0 {
+			return size
+		}
+	}
+	return defaultSize
 }
 
 type clientSubscription struct {
 	machineID  string // Machine identifier (userID:machineIDFromRequest:orgID)
 	eventsCh   chan redis.StreamEvent
 	cancel     context.CancelFunc
-	stream     proto.RelayService_SubscribeServer // gRPC stream for sending events
 }
 
 type machineSubscriptions struct {
@@ -116,9 +129,21 @@ func (s *Service) extractTokenInfo(ctx context.Context) (*auth.TokenInfo, error)
 	return tokenInfo, nil
 }
 
-func (s *Service) Subscribe(req *proto.SubscribeRequest, stream proto.RelayService_SubscribeServer) error {
+func (s *Service) Subscribe(stream grpc.BidiStreamingServer[proto.SubscribeMessage, proto.Event]) error {
 	ctx := stream.Context()
 
+	// Read first message to get SubscribeRequest
+	msg, err := stream.Recv()
+	if err != nil {
+		return fmt.Errorf("failed to receive initial subscription request: %w", err)
+	}
+
+	// First message must be SubscribeRequest
+	if msg.GetSubscribe() == nil {
+		return status.Error(codes.InvalidArgument, "first message must be SubscribeRequest")
+	}
+
+	req := msg.GetSubscribe()
 	log.Printf("[Subscribe] Starting subscription request: topic_id=%q app_id=%q machine_id=%q", req.TopicId, req.AppId, req.MachineId)
 
 	// Check for anonymous channel subscription
@@ -226,8 +251,10 @@ func (s *Service) Subscribe(req *proto.SubscribeRequest, stream proto.RelayServi
 	log.Printf("[Subscribe] Created machineID key=%s for userID=%s machineID=%s orgID=%q", 
 		machineID, tokenInfo.UserID, req.MachineId, orgID)
 
-	// Create event channel
-	eventsCh := make(chan redis.StreamEvent, 100)
+	// Create event channel with configurable buffer size
+	// Increased default from 1000 to 5000 to better handle bursts
+	eventsChBufferSize := getChannelBufferSize("RELAY_EVENTS_CHANNEL_BUFFER", 5000)
+	eventsCh := make(chan redis.StreamEvent, eventsChBufferSize)
 
 	// Subscribe to Redis streams
 	ctx, cancel := context.WithCancel(ctx)
@@ -235,9 +262,9 @@ func (s *Service) Subscribe(req *proto.SubscribeRequest, stream proto.RelayServi
 
 	var subscribeErr error
 	if len(topicIDs) == 1 {
-		subscribeErr = s.subscriber.SubscribeToTopic(topicIDs[0], eventsCh)
+		subscribeErr = s.subscriber.SubscribeToTopic(ctx, topicIDs[0], eventsCh)
 	} else {
-		subscribeErr = s.subscriber.SubscribeToApplication(topicIDs, eventsCh)
+		subscribeErr = s.subscriber.SubscribeToApplication(ctx, topicIDs, eventsCh)
 	}
 
 	if subscribeErr != nil {
@@ -339,7 +366,6 @@ func (s *Service) Subscribe(req *proto.SubscribeRequest, stream proto.RelayServi
 		machineID: machineID,
 		eventsCh: eventsCh,
 		cancel:   cancel,
-		stream:   stream,
 	}
 
 	// Add subscription to machine's list
@@ -431,15 +457,53 @@ func (s *Service) Subscribe(req *proto.SubscribeRequest, stream proto.RelayServi
 		}
 	}()
 
-	// Stream events to client
+	// Channel to receive Ready messages from client
+	readyCh := make(chan struct{}, 1)
+	recvErrCh := make(chan error, 1)
+
+	// Goroutine to receive Ready messages from client
+	go func() {
+		for {
+			msg, err := stream.Recv()
+			if err != nil {
+				// Only send error if context wasn't cancelled
+				if ctx.Err() == nil {
+					recvErrCh <- err
+				}
+				return
+			}
+
+			// Check if it's a Ready message
+			if msg.GetReady() != nil {
+				select {
+				case readyCh <- struct{}{}:
+					// Successfully signaled ready
+				case <-ctx.Done():
+					return
+				}
+			} else if msg.GetSubscribe() != nil {
+				// Received another SubscribeRequest - this is an error
+				recvErrCh <- status.Error(codes.InvalidArgument, "only first message can be SubscribeRequest")
+				return
+			}
+		}
+	}()
+
+	// Stream events to client with flow control
+	// After sending each event, wait for Ready before sending next
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
+		case err := <-recvErrCh:
+			log.Printf("Error receiving from client for machine %s: %v", machineID, err)
+			return err
 		case event, ok := <-eventsCh:
 			if !ok {
 				return status.Error(codes.Internal, "event channel closed")
 			}
+
+			log.Printf("[Subscribe] Received event from Redis: stream=%s, id=%s", event.StreamKey, event.ID)
 
 			// Convert Redis event to proto Event
 			protoEvent, err := s.convertToProtoEvent(ctx, event)
@@ -447,8 +511,35 @@ func (s *Service) Subscribe(req *proto.SubscribeRequest, stream proto.RelayServi
 				log.Printf("Error converting event: %v", err)
 				continue // Skip this event but continue processing
 			}
+
+			log.Printf("[Subscribe] Converted event: appID=%s, topicID=%s, method=%s, path=%s", 
+				protoEvent.AppId, protoEvent.TopicId, protoEvent.Method, protoEvent.Path)
+
+			// Send event to client
+			log.Printf("[Subscribe] Sending event via gRPC stream: appID=%s, topicID=%s, method=%s", 
+				protoEvent.AppId, protoEvent.TopicId, protoEvent.Method)
 			if err := stream.Send(protoEvent); err != nil {
-				log.Printf("Error sending event to machine %s: %v", machineID, err)
+				log.Printf("[Subscribe] Error sending event via gRPC stream: %v", err)
+				return err
+			}
+			log.Printf("[Subscribe] Successfully sent event via gRPC stream: appID=%s, topicID=%s", 
+				protoEvent.AppId, protoEvent.TopicId)
+
+			// For disconnect events, don't wait for ready
+			if protoEvent.EventType == "disconnect" {
+				return nil
+			}
+
+			// Wait for Ready message before sending next event
+			// This implements flow control: CLI controls the rate
+			select {
+			case <-readyCh:
+				// Client is ready for next event
+				log.Printf("[Subscribe] Received Ready signal, will send next event")
+			case <-ctx.Done():
+				return ctx.Err()
+			case err := <-recvErrCh:
+				log.Printf("Error receiving Ready from client: %v", err)
 				return err
 			}
 		}
@@ -468,8 +559,8 @@ func (s *Service) convertToProtoEvent(ctx context.Context, event redis.StreamEve
 		return nil, fmt.Errorf("topic ID not found in stream key: %s", streamKey)
 	}
 
-	// Look up application_id from topic
-	appID, err := s.supabase.GetTopicApplicationID(ctx, topicID)
+	// Look up application_id from topic (with caching)
+	appID, err := s.getTopicApplicationID(ctx, topicID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get application ID for topic %s: %w", topicID, err)
 	}
@@ -489,6 +580,24 @@ func (s *Service) convertToProtoEvent(ctx context.Context, event redis.StreamEve
 		TopicId:       topicID,
 		EventType:     "webhook", // Mark as webhook event
 	}, nil
+}
+
+// getTopicApplicationID gets the application ID for a topic, using cache if available
+func (s *Service) getTopicApplicationID(ctx context.Context, topicID string) (string, error) {
+	// Check cache first
+	if cachedAppID, ok := s.topicAppCache.Load(topicID); ok {
+		return cachedAppID.(string), nil
+	}
+
+	// Cache miss - lookup from database
+	appID, err := s.supabase.GetTopicApplicationID(ctx, topicID)
+	if err != nil {
+		return "", err
+	}
+
+	// Store in cache for future use
+	s.topicAppCache.Store(topicID, appID)
+	return appID, nil
 }
 
 func (s *Service) parseTimestamp(ts string) int64 {
@@ -785,21 +894,9 @@ func (s *Service) DisconnectClientByMachineID(dbMachineID string) {
 		subscriptionCount := len(machineSubs.subscriptions)
 		log.Printf("[DisconnectClientByMachineID] Cancelling %d subscriptions for context %s", subscriptionCount, machineID)
 		
-		// Send disconnect event and cancel all subscriptions for this machine
+		// Cancel all subscriptions for this machine
+		// Canceling the context will cause Subscribe to return, effectively disconnecting
 		for i, sub := range machineSubs.subscriptions {
-			if sub.stream != nil {
-				// Send disconnect event before canceling
-				disconnectEvent := &proto.Event{
-					EventType: "disconnect",
-					Timestamp: time.Now().UnixNano(),
-				}
-				if err := sub.stream.Send(disconnectEvent); err != nil {
-					log.Printf("[DisconnectClientByMachineID] Failed to send disconnect event to subscription %d: %v", i, err)
-				} else {
-					log.Printf("[DisconnectClientByMachineID] Sent disconnect event to subscription %d", i)
-				}
-			}
-			
 			if sub.cancel != nil {
 				log.Printf("[DisconnectClientByMachineID] Cancelling subscription %d for context %s", i, machineID)
 				// Cancel the context - this will cause the Subscribe function to return ctx.Err()
@@ -987,7 +1084,7 @@ func (s *Service) CreateAnonymousChannel(ctx context.Context, req *proto.CreateA
 }
 
 // handleAnonymousSubscribe handles anonymous channel subscriptions (no auth required)
-func (s *Service) handleAnonymousSubscribe(req *proto.SubscribeRequest, stream proto.RelayService_SubscribeServer) error {
+func (s *Service) handleAnonymousSubscribe(req *proto.SubscribeRequest, stream grpc.BidiStreamingServer[proto.SubscribeMessage, proto.Event]) error {
 	ctx := stream.Context()
 	topicID := req.TopicId
 
@@ -1030,24 +1127,62 @@ func (s *Service) handleAnonymousSubscribe(req *proto.SubscribeRequest, stream p
 		}
 	}()
 
-	// Create event channel
-	eventsCh := make(chan redis.StreamEvent, 100)
+	// Create event channel with configurable buffer size
+	// Increased default from 1000 to 5000 to better handle bursts
+	eventsChBufferSize := getChannelBufferSize("RELAY_EVENTS_CHANNEL_BUFFER", 5000)
+	eventsCh := make(chan redis.StreamEvent, eventsChBufferSize)
 
 	// Subscribe to Redis stream for anonymous topic
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	if err := s.subscriber.SubscribeToAnonymousTopic(topicID, eventsCh); err != nil {
+	if err := s.subscriber.SubscribeToAnonymousTopic(ctx, topicID, eventsCh); err != nil {
 		return status.Error(codes.Internal, fmt.Sprintf("failed to subscribe to anonymous topic: %v", err))
 	}
 
 	log.Printf("[handleAnonymousSubscribe] Subscribed to anonymous topic: %s", topicID)
 
-	// Stream events to client
+	// Channel to receive Ready messages from client
+	readyCh := make(chan struct{}, 1)
+	recvErrCh := make(chan error, 1)
+
+	// Goroutine to receive Ready messages from client
+	go func() {
+		for {
+			msg, err := stream.Recv()
+			if err != nil {
+				// Only send error if context wasn't cancelled
+				if ctx.Err() == nil {
+					recvErrCh <- err
+				}
+				return
+			}
+
+			// Check if it's a Ready message
+			if msg.GetReady() != nil {
+				select {
+				case readyCh <- struct{}{}:
+					// Successfully signaled ready
+				case <-ctx.Done():
+					return
+				}
+			} else if msg.GetSubscribe() != nil {
+				// Received another SubscribeRequest - this is an error
+				recvErrCh <- status.Error(codes.InvalidArgument, "only first message can be SubscribeRequest")
+				return
+			}
+		}
+	}()
+
+	// Stream events to client with flow control
+	// After sending each event, wait for Ready before sending next
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
+		case err := <-recvErrCh:
+			log.Printf("[handleAnonymousSubscribe] Error receiving from client: %v", err)
+			return err
 		case event, ok := <-eventsCh:
 			if !ok {
 				return status.Error(codes.Internal, "event channel closed")
@@ -1059,8 +1194,27 @@ func (s *Service) handleAnonymousSubscribe(req *proto.SubscribeRequest, stream p
 				log.Printf("[handleAnonymousSubscribe] Error converting event: %v", err)
 				continue // Skip this event but continue processing
 			}
+
+			// Send event to client
 			if err := stream.Send(protoEvent); err != nil {
 				log.Printf("[handleAnonymousSubscribe] Error sending event: %v", err)
+				return err
+			}
+
+			// For disconnect events, don't wait for ready
+			if protoEvent.EventType == "disconnect" {
+				return nil
+			}
+
+			// Wait for Ready message before sending next event
+			// This implements flow control: CLI controls the rate
+			select {
+			case <-readyCh:
+				// Client is ready for next event
+			case <-ctx.Done():
+				return ctx.Err()
+			case err := <-recvErrCh:
+				log.Printf("[handleAnonymousSubscribe] Error receiving Ready from client: %v", err)
 				return err
 			}
 		}

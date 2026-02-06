@@ -60,9 +60,19 @@ func NewClient(addr string) (*Client, error) {
 }
 
 func (c *Client) PublishWebhook(ctx context.Context, streamKey string, fields map[string]interface{}) error {
+	// MaxLen configurable via environment variable
+	// Increased default from 1000 to 10000 to prevent eviction under load
+	// With consumer groups, messages are tracked separately, but higher MaxLen provides safety margin
+	maxLen := 10000
+	if maxLenStr := os.Getenv("REDIS_STREAM_MAX_LEN"); maxLenStr != "" {
+		if ml, err := strconv.Atoi(maxLenStr); err == nil && ml > 0 {
+			maxLen = ml
+		}
+	}
+
 	err := c.client.XAdd(ctx, &redis.XAddArgs{
 		Stream: streamKey,
-		MaxLen: 1000,
+		MaxLen: int64(maxLen),
 		Approx: true,
 		Values: fields,
 	}).Err()

@@ -7,7 +7,9 @@ option go_package = "github.com/hookie/relay/proto;proto";
 // Relay service for streaming webhook events
 service RelayService {
   // Subscribe to webhook events for an application and/or topics
-  rpc Subscribe(SubscribeRequest) returns (stream Event);
+  // First message must be SubscribeRequest to establish subscription
+  // Subsequent messages should be Ready to signal readiness for next event
+  rpc Subscribe(stream SubscribeMessage) returns (stream Event);
   
   // List applications for the authenticated user
   rpc ListApplications(ListApplicationsRequest) returns (ListApplicationsResponse);
@@ -142,6 +144,20 @@ message AnonymousLimits {
   int64 requests_per_day = 1;
   int64 requests_per_minute = 2;
   int64 max_payload_bytes = 3;
+}
+
+// Message sent from client to relay during Subscribe stream
+// First message must be SubscribeRequest, subsequent messages should be Ready
+message SubscribeMessage {
+  oneof message {
+    SubscribeRequest subscribe = 1;
+    Ready ready = 2;
+  }
+}
+
+// Ready signal sent by client to indicate readiness for next event
+message Ready {
+  // Empty message - just signals readiness
 }
 
 
