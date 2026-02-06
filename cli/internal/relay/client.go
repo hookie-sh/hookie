@@ -3,7 +3,6 @@ package relay
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"strings"
@@ -27,9 +26,6 @@ func NewClient(token string, debug bool) (*Client, error) {
 	relayURL := os.Getenv("HOOKIE_RELAY_URL")
 	if relayURL == "" {
 		relayURL = GetRelayURL()
-	}
-	if debug {
-		log.Println("relayURL from env", relayURL)
 	}
 	// if relayURL == "" {
 	// 	relayURL = os.Getenv("HOOKIE_RELAY_URL")
@@ -133,9 +129,6 @@ func NewAnonymousClient(debug bool) (*Client, error) {
 	relayURL := os.Getenv("HOOKIE_RELAY_URL")
 	if relayURL == "" {
 		relayURL = GetRelayURL()
-	}
-	if debug {
-		log.Println("relayURL from env", relayURL)
 	}
 
 	// Determine transport credentials based on URL

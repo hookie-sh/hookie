@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/charmbracelet/huh"
 	"github.com/fatih/color"
@@ -24,6 +25,22 @@ var rootCmd = &cobra.Command{
 	Short: "Hookie CLI - Webhook event streaming tool",
 	Long:  `Hookie CLI allows you to authenticate, list applications/topics, and stream webhook events in real-time.`,
 	SilenceErrors: true,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		// Display debug information first if debug flag is set
+		if debug {
+			// Get command name by parsing os.Args directly
+			// This is necessary because PersistentPreRun runs after flag parsing,
+			// so args may not contain the subcommand name
+			commandName := getCommandNameFromArgs()
+			// Build command string without the full path - just use "hookie" as the command name
+			commandParts := []string{"hookie"}
+			if len(os.Args) > 1 {
+				commandParts = append(commandParts, os.Args[1:]...)
+			}
+			fullCommand := strings.Join(commandParts, " ")
+			printDebugInfo(commandName, orgID, fullCommand)
+		}
+	},
 }
 
 func Execute() {
@@ -213,6 +230,36 @@ var listenCmd = &cobra.Command{
 
 		return fmt.Errorf("invalid selection format")
 	},
+}
+
+// getCommandNameFromArgs extracts the subcommand name from os.Args
+// It skips the program name and any flags to find the actual command
+func getCommandNameFromArgs() string {
+	if len(os.Args) < 2 {
+		return "root"
+	}
+
+	// Skip program name (os.Args[0])
+	// Look for the first non-flag argument
+	for i := 1; i < len(os.Args); i++ {
+		arg := os.Args[i]
+		// Skip flags (starting with -)
+		if strings.HasPrefix(arg, "-") {
+			// Skip flag value if it's not a flag itself
+			if strings.Contains(arg, "=") {
+				continue
+			}
+			// Check if next arg is a value (not a flag)
+			if i+1 < len(os.Args) && !strings.HasPrefix(os.Args[i+1], "-") {
+				i++ // Skip the flag value
+			}
+			continue
+		}
+		// Found a non-flag argument - this should be the command name
+		return arg
+	}
+
+	return "root"
 }
 
 func init() {
