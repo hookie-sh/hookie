@@ -14,9 +14,9 @@ export const productsMetadata: ProductMetadata[] = [
       webhookLimit: "10k webhooks/month",
     },
     features: [
-      { text: "Personal organization" },
-      { text: "7-day retention" },
-      { text: "Basic webhook delivery" },
+      { text: "Single organization" },
+      { text: "7-day webhook history" },
+      { text: "Reliable delivery with retries" },
     ],
     cta: {
       label: "Get Started",
@@ -37,10 +37,10 @@ export const productsMetadata: ProductMetadata[] = [
     },
     previousPlanName: "Free",
     features: [
-      { text: "Unlimited apps & members" },
-      { text: "30-day retention" },
-      { text: "Team collaboration" },
-      { text: "Advanced analytics" },
+      { text: "Unlimited applications" },
+      { text: "Unlimited team members" },
+      { text: "30-day webhook history" },
+      { text: "Real-time analytics & insights" },
     ],
     cta: {
       label: "Get Started",
@@ -62,10 +62,10 @@ export const productsMetadata: ProductMetadata[] = [
     },
     previousPlanName: "Pro",
     features: [
-      { text: "Priority support" },
-      { text: "Webhook signing" },
-      { text: "Custom integrations" },
-      { text: "Extended retention options" },
+      { text: "Priority support & SLA" },
+      { text: "Webhook signing & verification" },
+      { text: "Custom webhook transformations" },
+      { text: "90-day retention available" },
     ],
     cta: {
       label: "Get Started",
@@ -86,11 +86,11 @@ export const productsMetadata: ProductMetadata[] = [
     },
     previousPlanName: "Scale",
     features: [
-      { text: "Dedicated support" },
-      { text: "SLA guarantee" },
-      { text: "SSO integration" },
-      { text: "Audit logs" },
-      { text: "Custom contracts" },
+      { text: "Dedicated account manager" },
+      { text: "99.9% uptime SLA" },
+      { text: "SSO & advanced security" },
+      { text: "Complete audit trail" },
+      { text: "Custom contracts & terms" },
     ],
     cta: {
       label: "Contact Sales",
@@ -151,5 +151,10 @@ export function enhanceStripeProducts(
     });
   }
 
-  return enhanced;
+  // Sort products to match the order in productsMetadata: Free, Pro, Scale, Enterprise
+  return enhanced.sort((a, b) => {
+    const orderA = productsMetadata.findIndex((meta) => meta.name === a.name);
+    const orderB = productsMetadata.findIndex((meta) => meta.name === b.name);
+    return orderA - orderB;
+  });
 }

@@ -7,8 +7,7 @@ export async function listProducts() {
       active: true,
     });
 
-    const enhancedProducts = enhanceStripeProducts(products);
-    return enhancedProducts;
+    return enhanceStripeProducts(products);
   } catch (error) {
     console.error("Error listing products:", error);
     throw error;
