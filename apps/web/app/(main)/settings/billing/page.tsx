@@ -1,7 +1,7 @@
 import { stripe } from "@/clients/stripe.server";
 import { supabase } from "@/clients/supabase.server";
-import { getSubscriptionByOrgId } from "@/features/subscriptions/db/server";
 import { Plans } from "@/features/subscriptions/components/server/plans";
+import { getSubscriptionByOrgId } from "@/features/subscriptions/db/server";
 import { auth } from "@clerk/nextjs/server";
 import { Badge } from "@hookie/ui/components/badge";
 import { Button } from "@hookie/ui/components/button";
@@ -102,7 +102,7 @@ export default async function BillingPage() {
                 </div>
               </div>
 
-              {stripeSubscription.current_period_start && (
+              {/* {stripeSubscription.current_period_start && (
                 <div>
                   <div className="text-sm text-muted-foreground mb-1">
                     Current Period
@@ -112,7 +112,7 @@ export default async function BillingPage() {
                     - {formatDate(stripeSubscription.current_period_end * 1000)}
                   </div>
                 </div>
-              )}
+              )} */}
 
               {stripeSubscription.cancel_at_period_end && (
                 <div>
