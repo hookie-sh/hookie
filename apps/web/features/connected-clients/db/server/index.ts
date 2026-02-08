@@ -1,4 +1,4 @@
-import { supabase } from "@/clients/supabase.server";
+import { createSupabaseServerClient } from "@/clients/supabase.server";
 import { supabaseServiceClient } from "@/clients/supabase.service";
 
 export interface ConnectedClient {
@@ -16,6 +16,7 @@ export async function getConnectedClientsByUserId(
   userId: string,
   orgId?: string | null
 ) {
+  const supabase = createSupabaseServerClient();
   // Build query
   let query = supabase
     .from("connected_clients")
@@ -36,6 +37,7 @@ export async function getConnectedClientsByUserId(
 }
 
 export async function disconnectClient(clientId: string) {
+  const supabase = createSupabaseServerClient();
   // Update database first - set disconnected_at and connection_count to 0
   const { error } = await supabase
     .from("connected_clients")
