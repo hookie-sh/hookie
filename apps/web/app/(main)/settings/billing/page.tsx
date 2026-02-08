@@ -1,5 +1,5 @@
 import { stripe } from "@/clients/stripe.server";
-import { supabase } from "@/clients/supabase.server";
+import { createSupabaseServerClient } from "@/clients/supabase.server";
 import { Plans } from "@/features/subscriptions/components/server/plans";
 import { getSubscriptionByOrgId } from "@/features/subscriptions/db/server";
 import { auth } from "@clerk/nextjs/server";
@@ -21,6 +21,8 @@ export default async function BillingPage() {
   if (!userId) {
     redirect("/sign-in");
   }
+
+  const supabase = createSupabaseServerClient();
 
   const subscription = orgId
     ? await getSubscriptionByOrgId(supabase, orgId)

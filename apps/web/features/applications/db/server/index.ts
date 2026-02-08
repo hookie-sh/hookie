@@ -1,7 +1,8 @@
-import { supabase } from "@/clients/supabase.server";
+import { createSupabaseServerClient } from "@/clients/supabase.server";
 import { CreateApplicationInput } from "../../schemas/application";
 
 export async function createApplication(input: CreateApplicationInput) {
+  const supabase = createSupabaseServerClient();
   const { data, error } = await supabase
     .from("applications")
     .insert(input)
@@ -16,6 +17,7 @@ export async function getApplicationsWithTopicCountByUserId(
   userId: string,
   orgId?: string | null
 ) {
+  const supabase = createSupabaseServerClient();
   // If orgId is provided, only return organization-owned applications
   if (orgId) {
     const { data: orgApps, error: orgError } = await supabase
@@ -54,6 +56,7 @@ export async function getRecentApplicationsByUserId(
   orgId?: string | null,
   limit: number = 5
 ) {
+  const supabase = createSupabaseServerClient();
   // If orgId is provided, only return organization-owned applications
   if (orgId) {
     const { data: orgApps, error: orgError } = await supabase
@@ -94,6 +97,7 @@ export async function getRecentApplicationsByUserId(
 }
 
 export async function getApplicationById(id: string) {
+  const supabase = createSupabaseServerClient();
   const { data, error } = await supabase
     .from("applications")
     .select("id, name, description, user_id, org_id, created_at, updated_at")
@@ -105,6 +109,7 @@ export async function getApplicationById(id: string) {
 }
 
 export async function deleteApplication(id: string) {
+  const supabase = createSupabaseServerClient();
   const { error } = await supabase.from("applications").delete().eq("id", id);
 
   if (error) throw error;

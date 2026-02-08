@@ -1,7 +1,8 @@
+import { createSupabaseServerClient } from "@/clients/supabase.server";
 import { CreateTopicInput } from "../../schemas/topic";
-import { supabase } from "@/clients/supabase.server";
 
 export async function getTopicCountByApplicationId(applicationId: string) {
+  const supabase = createSupabaseServerClient();
   const { count, error } = await supabase
     .from("topics")
     .select("*", { count: "exact", head: true })
@@ -12,6 +13,7 @@ export async function getTopicCountByApplicationId(applicationId: string) {
 }
 
 export async function createTopic(input: CreateTopicInput) {
+  const supabase = createSupabaseServerClient();
   const { data, error } = await supabase
     .from("topics")
     .insert(input)
@@ -23,6 +25,7 @@ export async function createTopic(input: CreateTopicInput) {
 }
 
 export async function getTopicsByApplicationId(applicationId: string) {
+  const supabase = createSupabaseServerClient();
   const { data, error } = await supabase
     .from("topics")
     .select("id, name, description, created_at, updated_at")
@@ -35,8 +38,9 @@ export async function getTopicsByApplicationId(applicationId: string) {
 
 export async function createTopicForApplication(
   applicationId: string,
-  input: CreateTopicInput,
+  input: CreateTopicInput
 ) {
+  const supabase = createSupabaseServerClient();
   const { data, error } = await supabase
     .from("topics")
     .insert({
@@ -52,6 +56,7 @@ export async function createTopicForApplication(
 }
 
 export async function deleteTopic(id: string) {
+  const supabase = createSupabaseServerClient();
   const { error } = await supabase.from("topics").delete().eq("id", id);
 
   if (error) throw error;
