@@ -19,5 +19,3 @@ export function createSupabaseServerClient(): SupabaseClient {
     },
   });
 }
-
-export const supabase = createSupabaseServerClient();
