@@ -1,21 +1,12 @@
 {
-  "extends": "@hookie/typescript-config/nextjs.json",
+  "extends": "@hookie/typescript-config/react-library.json",
   "compilerOptions": {
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
+    "jsx": "react-jsx",
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./src/*"]
     }
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "next-env.d.ts",
-    "next.config.js",
-    ".next/types/**/*.ts"
-  ],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"],
   "exclude": ["node_modules"]
 }

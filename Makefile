@@ -21,16 +21,23 @@ proto: proto-relay proto-cli
 build-relay:
 	cd backend/relay && go build -o ../../bin/relay main.go
 
+# Build GUI (Vite)
+build-gui:
+	pnpm --filter gui build
+
 # Build CLI (development by default, outputs to bin/hookie)
-build-cli:
+build-cli: build-cli-dev
+
+# Build CLI for development (includes embedded GUI)
+build-cli-dev: build-gui
+	rm -rf cli/internal/gui/dist
+	cp -r apps/gui/dist cli/internal/gui/dist
 	cd cli && go build -tags dev -o ../bin/hookie main.go
 
-# Build CLI for development
-build-cli-dev:
-	cd cli && go build -tags dev -o ../bin/hookie main.go
-
-# Build CLI for production
-build-cli-prod:
+# Build CLI for production (includes embedded GUI)
+build-cli-prod: build-gui
+	rm -rf cli/internal/gui/dist
+	cp -r apps/gui/dist cli/internal/gui/dist
 	cd cli && go build -o ../bin/hookie main.go
 
 # Build both

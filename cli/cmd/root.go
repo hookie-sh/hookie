@@ -3,13 +3,18 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
+	"os/exec"
+	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/huh"
 	"github.com/fatih/color"
 	"github.com/hookie/cli/internal/config"
+	"github.com/hookie/cli/internal/gui"
 	"github.com/hookie/cli/internal/relay"
 	"github.com/spf13/cobra"
 )
@@ -56,6 +61,8 @@ var listenCmd = &cobra.Command{
 	Long:  `Listen for webhook events. If unauthenticated, creates an anonymous ephemeral channel. If authenticated without flags, prompts for app or topic selection. Use --app-id to subscribe to all topics of an app, or --topic-id to subscribe to a specific topic. Optionally forward events to an endpoint URL using --forward flag.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		forwardURL, _ := cmd.Flags().GetString("forward")
+		showGUI, _ := cmd.Flags().GetBool("gui")
+		openBrowser, _ := cmd.Flags().GetBool("open")
 		topicID, _ := cmd.Flags().GetString("topic-id")
 		appID, _ := cmd.Flags().GetString("app-id")
 
@@ -119,6 +126,29 @@ var listenCmd = &cobra.Command{
 			endpointURL = parsedURL
 		}
 
+		// Start GUI server if --gui is set
+		var guiURL *url.URL
+		if showGUI {
+			addr := ":0"
+			if portStr := os.Getenv("HOOKIE_GUI_PORT"); portStr != "" {
+				if _, err := strconv.Atoi(portStr); err == nil {
+					addr = ":" + portStr
+				}
+			}
+			ln, err := net.Listen("tcp", addr)
+			if err != nil {
+				return fmt.Errorf("failed to start GUI server: %w", err)
+			}
+			port := ln.Addr().(*net.TCPAddr).Port
+			guiStorage := gui.NewStorage(1000)
+			gui.Server(ln, guiStorage)
+			guiURL, _ = url.Parse(fmt.Sprintf("http://127.0.0.1:%d", port))
+			fmt.Println(color.CyanString("GUI available at http://127.0.0.1:%d/", port))
+			if openBrowser {
+				openBrowserTo(guiURL.String())
+			}
+		}
+
 		// Check if authenticated
 		cfg, err := config.Load()
 		if err != nil {
@@ -127,7 +157,7 @@ var listenCmd = &cobra.Command{
 
 		if cfg.Token == "" {
 			// Anonymous mode
-			return runAnonymousListen(endpointURL)
+			return runAnonymousListen(endpointURL, guiURL)
 		}
 
 		// Authenticated mode
@@ -142,10 +172,10 @@ var listenCmd = &cobra.Command{
 
 		// If flags are provided, subscribe directly
 		if topicID != "" {
-			return runListen(topicID, "", effectiveOrgID, endpointURL, topicForwardMap)
+			return runListen(topicID, "", effectiveOrgID, endpointURL, topicForwardMap, guiURL)
 		}
 		if appID != "" {
-			return runListen("", appID, effectiveOrgID, endpointURL, topicForwardMap)
+			return runListen("", appID, effectiveOrgID, endpointURL, topicForwardMap, guiURL)
 		}
 
 		// No flags provided - show interactive selector with apps and topics
@@ -221,11 +251,11 @@ var listenCmd = &cobra.Command{
 		if len(selectedValue) > 4 && selectedValue[:4] == "app:" {
 			// App selected
 			appID := selectedValue[4:]
-			return runListen("", appID, effectiveOrgID, endpointURL, topicForwardMap)
+			return runListen("", appID, effectiveOrgID, endpointURL, topicForwardMap, guiURL)
 		} else if len(selectedValue) > 6 && selectedValue[:6] == "topic:" {
 			// Topic selected
 			topicID := selectedValue[6:]
-			return runListen(topicID, "", effectiveOrgID, endpointURL, topicForwardMap)
+			return runListen(topicID, "", effectiveOrgID, endpointURL, topicForwardMap, guiURL)
 		}
 
 		return fmt.Errorf("invalid selection format")
@@ -262,6 +292,21 @@ func getCommandNameFromArgs() string {
 	return "root"
 }
 
+func openBrowserTo(url string) {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "darwin":
+		cmd = exec.Command("open", url)
+	case "linux":
+		cmd = exec.Command("xdg-open", url)
+	case "windows":
+		cmd = exec.Command("cmd", "/c", "start", url)
+	default:
+		return
+	}
+	_ = cmd.Start()
+}
+
 func init() {
 	rootCmd.SetFlagErrorFunc(func(c *cobra.Command, err error) error {
 		return fmt.Errorf("%w\n\n%s", err, c.UsageString())
@@ -269,6 +314,8 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&orgID, "org-id", "", "Organization ID (can be set globally or per command)")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "Show detailed information (headers, query params, body, etc.)")
 	listenCmd.Flags().StringP("forward", "f", "", "Forward events to the specified endpoint URL")
+	listenCmd.Flags().Bool("gui", false, "Start local GUI server and forward events to it")
+	listenCmd.Flags().BoolP("open", "o", false, "Open browser when --gui is used")
 	listenCmd.Flags().StringP("topic-id", "t", "", "Subscribe to a specific topic")
 	listenCmd.Flags().StringP("app-id", "a", "", "Subscribe to all topics of an application")
 	rootCmd.AddCommand(listenCmd)

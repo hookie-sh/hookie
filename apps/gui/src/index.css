@@ -1,13 +1,28 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@source '../../app/**/*.{ts,tsx}';
-@source '../../components/**/*.{ts,tsx}';
+@source './**/*.{ts,tsx}';
 @source "../../../../packages/ui";
 
 @custom-variant dark (@media (prefers-color-scheme: dark));
 
+@font-face {
+  font-family: "Geist Sans";
+  src: url("/fonts/GeistVF.woff") format("woff");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/fonts/GeistMonoVF.woff") format("woff");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 :root {
+  --font-geist-sans: "Geist Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-geist-mono: "Geist Mono", ui-monospace, monospace;
   --background: oklch(0.9818 0.0054 95.0986);
   --foreground: oklch(0.3438 0.0269 95.7226);
   --card: oklch(0.9818 0.0054 95.0986);
@@ -115,12 +130,6 @@
       ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
       "Courier New", monospace;
     --radius: 0.5rem;
-    --shadow-x: 0;
-    --shadow-y: 1px;
-    --shadow-blur: 3px;
-    --shadow-spread: 0px;
-    --shadow-opacity: 0.1;
-    --shadow-color: oklch(0 0 0);
     --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
     --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
     --shadow-sm:

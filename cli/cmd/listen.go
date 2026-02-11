@@ -130,7 +130,8 @@ func startForwardingLogger(ctx context.Context) *forwardingLoggerState {
 //   - orgID: Organization ID (used for access verification)
 //   - endpointURL: Optional default URL to forward events to
 //   - topicForwardMap: Optional map of topic_id -> forward URL for per-topic forwarding
-func runListen(topicID, appID, orgID string, endpointURL *url.URL, topicForwardMap map[string]*url.URL) error {
+//   - guiURL: Optional URL of local GUI server to ingest events into
+func runListen(topicID, appID, orgID string, endpointURL *url.URL, topicForwardMap map[string]*url.URL, guiURL *url.URL) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
@@ -138,7 +139,7 @@ func runListen(topicID, appID, orgID string, endpointURL *url.URL, topicForwardM
 
 	if cfg.Token == "" {
 		// Fall back to anonymous mode
-		return runAnonymousListen(endpointURL)
+		return runAnonymousListen(endpointURL, guiURL)
 	}
 
 	client, err := relay.NewClient(cfg.Token, debug)
@@ -180,6 +181,9 @@ func runListen(topicID, appID, orgID string, endpointURL *url.URL, topicForwardM
 	}
 	if endpointURL != nil {
 		subscriptionInfo += fmt.Sprintf(", forwarding to: %s", color.CyanString(endpointURL.String()))
+	}
+	if guiURL != nil {
+		subscriptionInfo += fmt.Sprintf(", GUI at %s", color.CyanString(guiURL.String()))
 	}
 
 	fmt.Printf("Listening for events (%s)...\n", subscriptionInfo)
@@ -281,6 +285,10 @@ func runListen(topicID, appID, orgID string, endpointURL *url.URL, topicForwardM
 			go forwardEvent(httpClient, event, forwardURL, eventID, event.AppId, event.TopicId)
 		}
 
+		if guiURL != nil {
+			go ingestEventToGUI(httpClient, event, guiURL)
+		}
+
 		// Send Ready signal to relay to indicate we're ready for next event
 		// This implements flow control: CLI controls the rate
 		readyMsg := &proto.SubscribeMessage{
@@ -375,6 +383,27 @@ func printEvent(event *proto.Event, debug bool) {
 
 		fmt.Println()
 	}
+}
+
+func ingestEventToGUI(client *http.Client, event *proto.Event, guiURL *url.URL) {
+	ingestURL := guiURL.String() + "/api/ingest"
+	req := map[string]interface{}{
+		"method":    event.Method,
+		"path":      event.Path,
+		"query":     event.Query,
+		"headers":   event.Headers,
+		"body":      event.Body,
+		"contentType": event.ContentType,
+		"timestamp": event.Timestamp,
+		"appId":     event.AppId,
+		"topicId":   event.TopicId,
+	}
+	body, _ := json.Marshal(req)
+	resp, err := client.Post(ingestURL, "application/json", bytes.NewReader(body))
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
 }
 
 func forwardEvent(client *http.Client, event *proto.Event, baseURL *url.URL, eventID uint64, appID, topicID string) {
