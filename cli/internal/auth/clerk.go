@@ -568,7 +568,6 @@ func ReceiveSignInToken(ctx context.Context, port int) (string, error) {
 					</div>
 					<h1>Authentication Successful!</h1>
 					<p>You can close this window and return to the terminal.</p>
-					<button class="button" onclick="window.close()">Close Window</button>
 				</div>
 			</body>
 			</html>

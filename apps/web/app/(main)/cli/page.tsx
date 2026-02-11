@@ -78,8 +78,8 @@ export default function CLIPage() {
 
   if (!redirectUrl) {
     return (
-      <main className="container mx-auto px-4 py-8">
-        <Card>
+      <main className="flex flex-col items-center justify-center h-screen mx-auto px-4 py-8">
+        <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>CLI Authorization</CardTitle>
             <CardDescription>Missing redirect URL parameter</CardDescription>
@@ -97,8 +97,8 @@ export default function CLIPage() {
 
   if (success) {
     return (
-      <main className="container mx-auto px-4 py-8">
-        <Card>
+      <main className="flex flex-col items-center justify-center h-screen mx-auto px-4 py-8">
+        <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Terminal className="h-5 w-5" />
@@ -120,8 +120,8 @@ export default function CLIPage() {
   }
 
   return (
-    <main className="container mx-auto px-4 py-8">
-      <Card>
+    <main className="flex flex-col items-center justify-center h-screen mx-auto px-4 py-8">
+      <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Terminal className="h-5 w-5" />
