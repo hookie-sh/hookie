@@ -12,8 +12,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Hookie - Webhook Relay for Developers",
-  description: "Reliable webhook relay service for developers",
+  title: "Hookie Event Listener - Inspect Webhook Events",
+  description: "Receive and inspect webhook events forwarded from the Hookie CLI",
 };
 
 export default function RootLayout({
