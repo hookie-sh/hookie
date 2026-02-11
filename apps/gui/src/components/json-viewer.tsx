@@ -1,13 +1,28 @@
-export function JsonViewer({ data }: { data: unknown }) {
-  const str =
-    data === null || data === undefined
-      ? "null"
-      : typeof data === "string"
-        ? data
-        : JSON.stringify(data, null, 2);
+import { useMemo } from "react";
+
+interface JsonViewerProps {
+  data: unknown;
+  className?: string;
+}
+
+function formatJson(data: unknown): string {
+  if (data === null || data === undefined) return "null";
+  if (typeof data === "string") return JSON.stringify(data);
+  return JSON.stringify(data, null, 2);
+}
+
+export function JsonViewer({ data, className = "" }: JsonViewerProps) {
+  const str = useMemo(() => formatJson(data), [data]);
+
   return (
-    <pre className="font-mono text-xs overflow-auto max-h-64 rounded-md border border-border bg-muted/50 p-4">
-      {str}
+    <pre
+      className={[
+        "font-mono text-[13px] overflow-auto max-h-72 rounded-lg border border-border bg-muted/20 p-4 leading-relaxed",
+        "text-foreground/90 selection:bg-primary/20",
+        className,
+      ].join(" ")}
+    >
+      <code>{str}</code>
     </pre>
   );
 }
