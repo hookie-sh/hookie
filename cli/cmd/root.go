@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"net"
 	"net/url"
 	"os"
 	"os/exec"
@@ -130,22 +129,18 @@ var listenCmd = &cobra.Command{
 		// Start GUI when: no --forward, or --forward + --ui
 		var guiURL *url.URL
 		if showGUI {
-			var ln net.Listener
+			port := gui.DefaultPort()
+			var started bool
 			var err error
-			for p := 4840; p < 4940; p++ {
-				ln, err = net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", p))
-				if err == nil {
-					break
-				}
+			guiURL, started, err = gui.AcquireOrUseServer(port)
+			if err != nil {
+				return fmt.Errorf("GUI: %w", err)
 			}
-			if ln == nil {
-				return fmt.Errorf("no available port in range 4840-4939: %w", err)
+			if started {
+				fmt.Println(color.CyanString("GUI available at %s/", guiURL.String()))
+			} else {
+				fmt.Println(color.CyanString("Using existing GUI at %s/", guiURL.String()))
 			}
-			port := ln.Addr().(*net.TCPAddr).Port
-			guiStorage := gui.NewStorage(1000)
-			gui.Server(ln, guiStorage)
-			guiURL, _ = url.Parse(fmt.Sprintf("http://127.0.0.1:%d", port))
-			fmt.Println(color.CyanString("GUI available at http://127.0.0.1:%d/", port))
 			if openBrowser {
 				openBrowserTo(guiURL.String())
 			}

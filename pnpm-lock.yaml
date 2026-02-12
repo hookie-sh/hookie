@@ -159,6 +159,12 @@ importers:
         specifier: ^5.2.1
         version: 5.2.1
 
+  apps/playground-two:
+    dependencies:
+      express:
+        specifier: ^5.2.1
+        version: 5.2.1
+
   apps/web:
     dependencies:
       '@clerk/backend':
