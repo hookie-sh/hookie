@@ -8,8 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"strconv"
-	"strings"
+		"strings"
 
 	"github.com/charmbracelet/huh"
 	"github.com/fatih/color"
@@ -129,15 +128,16 @@ var listenCmd = &cobra.Command{
 		// Start GUI server if --gui is set
 		var guiURL *url.URL
 		if showGUI {
-			addr := ":0"
-			if portStr := os.Getenv("HOOKIE_GUI_PORT"); portStr != "" {
-				if _, err := strconv.Atoi(portStr); err == nil {
-					addr = ":" + portStr
+			var ln net.Listener
+			var err error
+			for p := 4840; p < 4940; p++ {
+				ln, err = net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", p))
+				if err == nil {
+					break
 				}
 			}
-			ln, err := net.Listen("tcp", addr)
-			if err != nil {
-				return fmt.Errorf("failed to start GUI server: %w", err)
+			if ln == nil {
+				return fmt.Errorf("no available port in range 4840-4939: %w", err)
 			}
 			port := ln.Addr().(*net.TCPAddr).Port
 			guiStorage := gui.NewStorage(1000)
