@@ -240,10 +240,10 @@ function EventList() {
             </div>
             <h3 className="text-lg font-semibold mb-1">No events yet</h3>
             <p className="text-muted-foreground text-center text-sm mb-4">
-              Start the CLI with the GUI flag to capture webhook events.
+              Start the CLI to capture webhook events. UI starts by default.
             </p>
             <code className="bg-muted px-3 py-2 rounded text-sm font-mono">
-              hookie listen --gui
+              hookie listen
             </code>
           </CardContent>
         </Card>

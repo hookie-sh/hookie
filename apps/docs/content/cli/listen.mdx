@@ -101,10 +101,28 @@ Press Ctrl+C to stop
 - `--app-id` or `-a` - Subscribe to all topics of an application
 - `--topic-id` or `-t` - Subscribe to a specific topic
 - `--forward` or `-f` - Forward events to a local endpoint URL
+- `--ui` - Show local UI when using `--forward` (UI is shown by default when not forwarding)
+- `--open` or `-o` - Open browser when UI is started
 - `--org-id` - Organization ID (for org-owned applications)
 - `--debug` or `-d` - Show detailed information (headers, query params, body)
 
 **Note**: `--app-id` and `--topic-id` are mutually exclusive. You cannot specify both.
+
+## Local UI
+
+By default, `hookie listen` starts a local UI in your browser where you can view incoming webhook events:
+
+```bash
+hookie listen
+```
+
+When forwarding with `--forward`, the UI is disabled by default. Add `--ui` to show the UI while forwarding:
+
+```bash
+hookie listen --app-id app_123 --forward http://localhost:3001/webhooks --ui
+```
+
+Use `--open` or `-o` to automatically open the browser when the UI starts.
 
 ## Event Display
 

@@ -60,7 +60,9 @@ var listenCmd = &cobra.Command{
 	Long:  `Listen for webhook events. If unauthenticated, creates an anonymous ephemeral channel. If authenticated without flags, prompts for app or topic selection. Use --app-id to subscribe to all topics of an app, or --topic-id to subscribe to a specific topic. Optionally forward events to an endpoint URL using --forward flag.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		forwardURL, _ := cmd.Flags().GetString("forward")
-		showGUI, _ := cmd.Flags().GetBool("gui")
+		forwardExplicit := cmd.Flags().Changed("forward")
+		showUI, _ := cmd.Flags().GetBool("ui")
+		showGUI := !forwardExplicit || showUI
 		openBrowser, _ := cmd.Flags().GetBool("open")
 		topicID, _ := cmd.Flags().GetString("topic-id")
 		appID, _ := cmd.Flags().GetString("app-id")
@@ -125,7 +127,7 @@ var listenCmd = &cobra.Command{
 			endpointURL = parsedURL
 		}
 
-		// Start GUI server if --gui is set
+		// Start GUI when: no --forward, or --forward + --ui
 		var guiURL *url.URL
 		if showGUI {
 			var ln net.Listener
@@ -314,8 +316,8 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&orgID, "org-id", "", "Organization ID (can be set globally or per command)")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "Show detailed information (headers, query params, body, etc.)")
 	listenCmd.Flags().StringP("forward", "f", "", "Forward events to the specified endpoint URL")
-	listenCmd.Flags().Bool("gui", false, "Start local GUI server and forward events to it")
-	listenCmd.Flags().BoolP("open", "o", false, "Open browser when --gui is used")
+	listenCmd.Flags().Bool("ui", false, "Show local UI when forwarding with --forward")
+	listenCmd.Flags().BoolP("open", "o", false, "Open browser when UI is started")
 	listenCmd.Flags().StringP("topic-id", "t", "", "Subscribe to a specific topic")
 	listenCmd.Flags().StringP("app-id", "a", "", "Subscribe to all topics of an application")
 	rootCmd.AddCommand(listenCmd)
