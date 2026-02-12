@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@hookie/ui/components/card";
 import { Badge } from "@hookie/ui/components/badge";
+import { Button } from "@hookie/ui/components/button";
 import { Input } from "@hookie/ui/components/input";
 import { LogoWordmark } from "@hookie/ui/components/logo-wordmark";
 import {
@@ -11,6 +12,7 @@ import {
   ChevronRight,
   Filter,
   MessageSquare,
+  Trash2,
 } from "lucide-react";
 import { JsonViewer } from "@/components/json-viewer.js";
 
@@ -261,15 +263,30 @@ function EventList() {
             <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Events
             </span>
-            {live && (
-              <span className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-                  <span className="relative h-1.5 w-1.5 rounded-full bg-green-500" />
+            <div className="flex items-center gap-2">
+              {live && (
+                <span className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                    <span className="relative h-1.5 w-1.5 rounded-full bg-green-500" />
+                  </span>
+                  Live
                 </span>
-                Live
-              </span>
-            )}
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                onClick={async () => {
+                  await fetch("/api/events/clear", { method: "POST" });
+                  fetchEvents();
+                  setSelectedEvent(null);
+                }}
+                title="Clear events"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
           <div className="flex gap-2">
             <div className="relative flex-1">

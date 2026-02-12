@@ -26,6 +26,11 @@ func Handler(staticFS fs.FS, storage *Storage) http.Handler {
 	mux.HandleFunc("GET /api/stream", func(w http.ResponseWriter, r *http.Request) {
 		handleStream(w, r, storage)
 	})
+	mux.HandleFunc("POST /api/events/clear", func(w http.ResponseWriter, r *http.Request) {
+		storage.Clear()
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	})
 
 	// Static files - SPA fallback: serve index.html for non-API, non-asset routes
 	fileServer := http.FileServer(http.FS(staticFS))

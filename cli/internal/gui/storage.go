@@ -184,6 +184,13 @@ func (s *Storage) Subscribe() (<-chan StoredEvent, func()) {
 	return ch, cancel
 }
 
+// Clear removes all events from storage
+func (s *Storage) Clear() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.events = nil
+}
+
 func formatID(id uint64) string {
 	return strconv.FormatUint(id, 10)
 }
