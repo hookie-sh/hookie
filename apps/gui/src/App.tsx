@@ -1,20 +1,18 @@
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@hookie/ui/components/card";
 import { Badge } from "@hookie/ui/components/badge";
-import { Button } from "@hookie/ui/components/button";
 import { Input } from "@hookie/ui/components/input";
 import { LogoWordmark } from "@hookie/ui/components/logo-wordmark";
 import {
   Inbox,
   Search,
-  X,
   Clock,
+  ChevronDown,
   ChevronRight,
-  Heading,
-  FileJson,
   Filter,
+  MessageSquare,
 } from "lucide-react";
-import { JsonViewer } from "@/components/json-viewer";
+import { JsonViewer } from "@/components/json-viewer.js";
 
 export interface StoredEvent {
   id: string;
@@ -30,7 +28,10 @@ export interface StoredEvent {
 
 const METHOD_STYLES: Record<
   string,
-  { variant: "default" | "secondary" | "outline" | "destructive"; className?: string }
+  {
+    variant: "default" | "secondary" | "outline" | "destructive";
+    className?: string;
+  }
 > = {
   GET: { variant: "secondary", className: "font-semibold" },
   POST: { variant: "default", className: "font-semibold" },
@@ -39,117 +40,106 @@ const METHOD_STYLES: Record<
   DELETE: { variant: "destructive", className: "font-semibold" },
 };
 
-interface EventDetailDrawerProps {
-  event: StoredEvent | null;
-  onClose: () => void;
+interface CollapsibleSectionProps {
+  label: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
 }
 
-type DetailTab = "headers" | "query" | "body";
+function CollapsibleSection({
+  label,
+  children,
+  defaultOpen = false,
+}: CollapsibleSectionProps) {
+  const [open, setOpen] = useState(defaultOpen);
 
-function EventDetailDrawer({ event, onClose }: EventDetailDrawerProps) {
-  const [activeTab, setActiveTab] = useState<DetailTab>("body");
-  if (!event) return null;
+  return (
+    <div className="border-b border-border last:border-b-0">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium text-foreground hover:bg-muted/30 transition-colors text-left"
+      >
+        {open ? (
+          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+        ) : (
+          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+        )}
+        {label}
+      </button>
+      {open && <div className="px-4 pb-4">{children}</div>}
+    </div>
+  );
+}
+
+interface EventDetailPanelProps {
+  event: StoredEvent | null;
+}
+
+function EventDetailPanel({ event }: EventDetailPanelProps) {
+  if (!event) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-12">
+        <div className="text-center text-muted-foreground">
+          <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <p className="font-medium">Select an event to view details</p>
+          <p className="text-sm mt-1">Click an event in the sidebar</p>
+        </div>
+      </div>
+    );
+  }
 
   const style = METHOD_STYLES[event.method] ?? { variant: "outline" as const };
   const hasHeaders = Object.keys(event.headers ?? {}).length > 0;
   const hasQuery = Object.keys(event.query ?? {}).length > 0;
 
-  const tabs: { id: DetailTab; label: string; icon: React.ReactNode }[] = [
-    { id: "body", label: "Body", icon: <FileJson className="h-3.5 w-3.5" /> },
-    { id: "headers", label: "Headers", icon: <Heading className="h-3.5 w-3.5" /> },
-    { id: "query", label: "Query", icon: <Filter className="h-3.5 w-3.5" /> },
-  ].filter((t) => (t.id === "headers" ? hasHeaders : t.id === "query" ? hasQuery : true));
-
   return (
-    <>
-      <div
-        className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 animate-in fade-in duration-200"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <div
-        className="fixed right-0 top-0 bottom-0 w-full max-w-xl bg-card border-l border-border shadow-2xl z-50 overflow-hidden flex flex-col animate-in slide-in-from-right duration-200"
-        role="dialog"
-        aria-labelledby="drawer-title"
-      >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-card">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <Badge variant={style.variant} className={`font-mono px-2.5 py-1 rounded-md shrink-0 ${style.className ?? ""}`}>
-              {event.method}
-            </Badge>
-            <span
-              id="drawer-title"
-              className="font-mono text-sm truncate text-foreground"
-            >
-              {event.path}
-            </span>
-          </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0">
-            <X className="h-4 w-4" />
-          </Button>
+    <div className="flex-1 overflow-auto p-6">
+      <div className="mb-6">
+        <div className="flex items-center gap-3 mb-2">
+          <Badge
+            variant={style.variant}
+            className={`font-mono px-2.5 py-1 rounded-md ${style.className ?? ""}`}
+          >
+            {event.method}
+          </Badge>
+          <span className="font-mono text-sm text-foreground break-all">
+            {event.path}
+          </span>
         </div>
-
-        <div className="px-5 py-3 border-b border-border bg-muted/30">
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5" />
-              {new Date(event.timestamp).toLocaleString()}
-            </span>
-            {(event.appId || event.topicId) && (
-              <span>
-                {event.appId && <span className="text-foreground/80">{event.appId}</span>}
-                {event.appId && event.topicId && " · "}
-                {event.topicId && <span className="text-foreground/80">{event.topicId}</span>}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="flex gap-1 px-4 pt-3 border-b border-border bg-muted/20">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={[
-                "flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-t-md transition-colors",
-                activeTab === tab.id
-                  ? "bg-background text-foreground border border-b-0 border-border -mb-px"
-                  : "text-muted-foreground hover:text-foreground",
-              ].join(" ")}
-            >
-              {tab.icon}
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex-1 overflow-auto p-5">
-          {activeTab === "headers" && (
-            <div>
-              <JsonViewer data={event.headers} />
-            </div>
-          )}
-          {activeTab === "query" && (
-            <div>
-              <JsonViewer data={event.query} />
-            </div>
-          )}
-          {activeTab === "body" && (
-            <div>
-              <JsonViewer data={event.body} />
-            </div>
-          )}
+        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5" />
+            {new Date(event.timestamp).toLocaleString()}
+          </span>
+          {event.appId && <span>{event.appId}</span>}
+          {event.topicId && <span>{event.topicId}</span>}
         </div>
       </div>
-    </>
+
+      <div className="rounded-lg border border-border bg-card/80 overflow-hidden">
+        <CollapsibleSection label="Body" defaultOpen>
+          <JsonViewer data={event.body} />
+        </CollapsibleSection>
+        {hasHeaders && (
+          <CollapsibleSection label="Headers">
+            <JsonViewer data={event.headers} />
+          </CollapsibleSection>
+        )}
+        {hasQuery && (
+          <CollapsibleSection label="Query">
+            <JsonViewer data={event.query} />
+          </CollapsibleSection>
+        )}
+      </div>
+    </div>
   );
 }
 
 function filterEvents(
   events: StoredEvent[],
   methodFilter: string,
-  pathFilter: string,
+  pathFilter: string
 ): StoredEvent[] {
   return events.filter((e) => {
     if (methodFilter) {
@@ -157,7 +147,10 @@ function filterEvents(
       const f = methodFilter.toUpperCase();
       if (!m.includes(f)) return false;
     }
-    if (pathFilter && !e.path.toLowerCase().includes(pathFilter.toLowerCase())) {
+    if (
+      pathFilter &&
+      !e.path.toLowerCase().includes(pathFilter.toLowerCase())
+    ) {
       return false;
     }
     return true;
@@ -211,159 +204,176 @@ function EventList() {
 
   if (error) {
     return (
-      <Card className="border-destructive/50 bg-destructive/5">
-        <CardContent className="pt-6">
-          <p className="text-destructive font-medium">Failed to load events</p>
-          <p className="text-sm text-muted-foreground mt-1">{error.message}</p>
-        </CardContent>
-      </Card>
+      <div className="flex-1 flex items-center justify-center p-8">
+        <Card className="border-destructive/50 bg-destructive/5 max-w-md">
+          <CardContent className="pt-6">
+            <p className="text-destructive font-medium">
+              Failed to load events
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {error.message}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-3 text-muted-foreground py-12">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
-        <span>Loading events...</span>
+      <div className="flex-1 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
+          <span>Loading events...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (events.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-8">
+        <Card className="border-dashed border-2 max-w-md p-4">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="rounded-full bg-muted p-5 mb-4">
+              <Inbox className="h-12 w-12 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold mb-1">No events yet</h3>
+            <p className="text-muted-foreground text-center text-sm mb-4">
+              Start the CLI with the GUI flag to capture webhook events.
+            </p>
+            <code className="bg-muted px-3 py-2 rounded text-sm font-mono">
+              hookie listen --gui
+            </code>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   const filteredEvents = filterEvents(events, methodFilter, pathFilter);
 
-  if (events.length === 0) {
-    return (
-      <Card className="border-dashed border-2">
-        <CardContent className="flex flex-col items-center justify-center py-20">
-          <div className="rounded-full bg-muted p-5 mb-5">
-            <Inbox className="h-12 w-12 text-muted-foreground" />
-          </div>
-          <h3 className="text-lg font-semibold mb-1">No events yet</h3>
-          <p className="text-muted-foreground text-center max-w-sm mb-6">
-            Start the CLI with the GUI flag to capture webhook events in real-time.
-          </p>
-          <div className="rounded-lg bg-muted/50 px-4 py-3 font-mono text-sm">
-            <code className="text-foreground">hookie listen --gui</code>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">
-            <span className="font-semibold text-foreground">{events.length}</span>{" "}
-            event{events.length !== 1 ? "s" : ""}
-          </span>
-          {live && (
-            <span className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
-              </span>
-              Live
+    <div className="flex flex-1 min-h-0">
+      <aside className="w-80 min-w-[280px] flex flex-col border-r border-border bg-card/50 shrink-0">
+        <div className="p-4 border-b border-border">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Events
             </span>
+            {live && (
+              <span className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                  <span className="relative h-1.5 w-1.5 rounded-full bg-green-500" />
+                </span>
+                Live
+              </span>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Method"
+                value={methodFilter}
+                onChange={(e) => setMethodFilter(e.target.value)}
+                className="pl-8 h-8 text-sm"
+              />
+            </div>
+            <div className="relative flex-1">
+              <Filter className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Path"
+                value={pathFilter}
+                onChange={(e) => setPathFilter(e.target.value)}
+                className="pl-8 h-8 text-sm"
+              />
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 overflow-auto">
+          {filteredEvents.length === 0 ? (
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              No events match your filters.
+            </div>
+          ) : (
+            <div className="py-2">
+              {filteredEvents.map((event) => {
+                const style = METHOD_STYLES[event.method] ?? {
+                  variant: "outline" as const,
+                };
+                const isSelected = selectedEvent?.id === event.id;
+                return (
+                  <button
+                    key={event.id}
+                    type="button"
+                    onClick={() => setSelectedEvent(event)}
+                    className={[
+                      "w-full text-left px-4 py-3 flex flex-col gap-1.5 transition-colors",
+                      "border-l-2 -mt-px first:mt-0",
+                      isSelected
+                        ? "bg-muted/30 border-l-primary"
+                        : "border-l-transparent hover:bg-muted/20",
+                    ].join(" ")}
+                  >
+                    <span className="font-mono text-sm text-foreground truncate">
+                      {event.path}
+                    </span>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Badge
+                        variant={style.variant}
+                        className={`font-mono px-2 py-0.5 text-[10px] rounded ${style.className ?? ""}`}
+                      >
+                        {event.method}
+                      </Badge>
+                      <span className="tabular-nums">
+                        {new Date(event.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Method"
-              value={methodFilter}
-              onChange={(e) => setMethodFilter(e.target.value)}
-              className="pl-9 w-28 h-9"
-            />
-          </div>
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Path"
-              value={pathFilter}
-              onChange={(e) => setPathFilter(e.target.value)}
-              className="pl-9 w-44 h-9"
-            />
-          </div>
-        </div>
-      </div>
+      </aside>
 
-      <div className="space-y-3">
-        {filteredEvents.length === 0 ? (
-          <div className="py-20 px-6 text-center text-muted-foreground text-sm rounded-xl bg-card/50 border border-dashed border-border">
-            No events match your filters.
-          </div>
-        ) : (
-          filteredEvents.map((event) => {
-            const style = METHOD_STYLES[event.method] ?? { variant: "outline" as const };
-            const isSelected = selectedEvent?.id === event.id;
-            return (
-              <button
-                key={event.id}
-                type="button"
-                onClick={() => setSelectedEvent(event)}
-                className={[
-                  "w-full text-left flex items-center gap-4 px-5 py-4 rounded-xl transition-all duration-150",
-                  "bg-card/60 hover:bg-card/80 border border-border/50 hover:border-border",
-                  "focus:outline-none focus:ring-2 focus:ring-ring/50 focus:ring-offset-2 focus:ring-offset-background",
-                  isSelected && "ring-2 ring-primary/30 border-primary/30 bg-card",
-                ].join(" ")}
-              >
-                <Badge variant={style.variant} className={`font-mono text-xs px-2.5 py-1 rounded-md shrink-0 ${style.className ?? ""}`}>
-                  {event.method}
-                </Badge>
-                <span className="font-mono text-sm truncate flex-1 min-w-0">{event.path}</span>
-                <span className="text-muted-foreground text-xs tabular-nums shrink-0">
-                  {new Date(event.timestamp).toLocaleTimeString()}
-                </span>
-                {event.appId && (
-                  <span className="text-muted-foreground text-xs truncate max-w-24 shrink-0 hidden sm:block">
-                    {event.appId}
-                  </span>
-                )}
-                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-              </button>
-            );
-          })
-        )}
-      </div>
-
-      <EventDetailDrawer
-        event={selectedEvent}
-        onClose={() => setSelectedEvent(null)}
-      />
+      <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        <EventDetailPanel event={selectedEvent} />
+      </main>
     </div>
   );
 }
 
 export function App() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col">
       <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,oklch(0.6171_0.1375_39.0427/0.08),transparent_50%)]" />
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808006_1px,transparent_1px),linear-gradient(to_bottom,#80808006_1px,transparent_1px)] bg-[size:24px_24px]" />
 
       <header className="relative border-b border-border/50 bg-background/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 lg:px-6">
+        <div className="px-4 lg:px-6">
           <div className="flex h-14 items-center gap-6">
             <LogoWordmark className="h-6 text-foreground" />
             <span className="text-muted-foreground">|</span>
-            <span className="text-sm text-muted-foreground">Event Listener</span>
+            <span className="text-sm text-muted-foreground">
+              Event Listener
+            </span>
           </div>
         </div>
       </header>
 
-      <main className="relative container mx-auto px-4 lg:px-6 py-10 max-w-5xl">
-        <div className="mb-10">
-          <h1 className="text-2xl font-semibold mb-2">Inspect Webhook Events</h1>
-          <p className="text-muted-foreground">
-            Receive events forwarded from the CLI and inspect their payloads in real-time.
+      <div className="relative flex-1 flex flex-col min-h-0">
+        <div className="px-4 lg:px-6 py-6 border-b border-border/50">
+          <h1 className="text-xl font-semibold">Webhook Events</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Inspect webhook payloads captured from the CLI in real-time.
           </p>
         </div>
         <EventList />
-      </main>
+      </div>
     </div>
   );
 }
