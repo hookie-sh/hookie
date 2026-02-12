@@ -62,7 +62,6 @@ var listenCmd = &cobra.Command{
 		forwardExplicit := cmd.Flags().Changed("forward")
 		showUI, _ := cmd.Flags().GetBool("ui")
 		showGUI := !forwardExplicit || showUI
-		openBrowser, _ := cmd.Flags().GetBool("open")
 		topicID, _ := cmd.Flags().GetString("topic-id")
 		appID, _ := cmd.Flags().GetString("app-id")
 
@@ -138,11 +137,9 @@ var listenCmd = &cobra.Command{
 			}
 			if started {
 				fmt.Println(color.CyanString("GUI available at %s/", guiURL.String()))
+				openBrowserTo(guiURL.String())
 			} else {
 				fmt.Println(color.CyanString("Using existing GUI at %s/", guiURL.String()))
-			}
-			if openBrowser {
-				openBrowserTo(guiURL.String())
 			}
 		}
 
@@ -312,7 +309,6 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "Show detailed information (headers, query params, body, etc.)")
 	listenCmd.Flags().StringP("forward", "f", "", "Forward events to the specified endpoint URL")
 	listenCmd.Flags().Bool("ui", false, "Show local UI when forwarding with --forward")
-	listenCmd.Flags().BoolP("open", "o", false, "Open browser when UI is started")
 	listenCmd.Flags().StringP("topic-id", "t", "", "Subscribe to a specific topic")
 	listenCmd.Flags().StringP("app-id", "a", "", "Subscribe to all topics of an application")
 	rootCmd.AddCommand(listenCmd)

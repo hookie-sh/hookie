@@ -102,7 +102,6 @@ Press Ctrl+C to stop
 - `--topic-id` or `-t` - Subscribe to a specific topic
 - `--forward` or `-f` - Forward events to a local endpoint URL
 - `--ui` - Show local UI when using `--forward` (UI is shown by default when not forwarding)
-- `--open` or `-o` - Open browser when UI is started
 - `--org-id` - Organization ID (for org-owned applications)
 - `--debug` or `-d` - Show detailed information (headers, query params, body)
 
@@ -122,7 +121,7 @@ When forwarding with `--forward`, the UI is disabled by default. Add `--ui` to s
 hookie listen --app-id app_123 --forward http://localhost:3001/webhooks --ui
 ```
 
-Use `--open` or `-o` to automatically open the browser when the UI starts.
+The browser opens automatically when the first instance starts the GUI. Subsequent instances reuse the existing GUI without opening a new browser window.
 
 ## Event Display
 
