@@ -71,10 +71,11 @@ hookie/
 │   ├── ingest/           # Webhook ingestion service (Go)
 │   └── relay/            # gRPC relay service (Go)
 ├── cli/                  # CLI tool (Go)
-├── packages/
-│   ├── ui/               # Shared UI components
+├── config/
 │   ├── eslint-config/    # ESLint configurations
 │   └── typescript-config/ # TypeScript configurations
+├── packages/
+│   └── ui/               # Shared UI components
 ├── supabase/             # Database migrations and config
 └── scripts/              # Utility scripts
 ```
