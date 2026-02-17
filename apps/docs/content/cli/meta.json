@@ -2,5 +2,13 @@
   "title": "CLI",
   "description": "CLI documentation",
   "icon": "cli",
-  "root": true
+  "root": true,
+  "pages": [
+    "index",
+    "authentication",
+    "listen",
+    "applications",
+    "topics",
+    "configuration"
+  ]
 }

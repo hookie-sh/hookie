@@ -1,4 +1,5 @@
 import { LogoWordmark } from "@hookie/ui/components/logo-wordmark";
+
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
 
 export function baseOptions(): BaseLayoutProps {

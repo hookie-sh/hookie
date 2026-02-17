@@ -18,8 +18,8 @@ export default async function Page(props: PageProps<"/[[...slug]]">) {
 
   const MDX = page.data.body;
   const gitConfig = {
-    user: "username",
-    repo: "repo",
+    user: "hookie-sh",
+    repo: "hookie",
     branch: "main",
   };
 
@@ -54,7 +54,7 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata(
-  props: PageProps<"/[[...slug]]">
+  props: PageProps<"/[[...slug]]">,
 ): Promise<Metadata> {
   const params = await props.params;
   const page = source.getPage(params.slug);
