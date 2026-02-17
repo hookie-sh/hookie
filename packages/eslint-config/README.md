@@ -1,3 +1,3 @@
-# `@turbo/eslint-config`
+# @hookie/eslint-config
 
-Collection of internal eslint configurations.
+Shared ESLint config for Hookie apps and packages.
