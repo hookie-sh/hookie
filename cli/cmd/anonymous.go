@@ -18,7 +18,7 @@ import (
 )
 
 // runAnonymousListen handles anonymous ephemeral channel listening
-func runAnonymousListen(endpointURL *url.URL) error {
+func runAnonymousListen(endpointURL *url.URL, guiURL *url.URL) error {
 	// Load repository config for forward URL (anonymous mode doesn't support app_id/topic_id)
 	repoConfig, _, err := config.LoadRepoConfig()
 	if err != nil {
@@ -85,6 +85,9 @@ func runAnonymousListen(endpointURL *url.URL) error {
 	if endpointURL != nil {
 		fmt.Printf(color.CyanString("║")+"  Forwarding to: %-42s "+color.CyanString("║")+"\n", color.YellowString(endpointURL.String()))
 	}
+	if guiURL != nil {
+		fmt.Printf(color.CyanString("║")+"  GUI: %-50s "+color.CyanString("║")+"\n", color.YellowString(guiURL.String()))
+	}
 	fmt.Printf(color.CyanString("║")+"  Expires in: %-45s "+color.CyanString("║")+"\n", color.YellowString(formatDuration(expiresIn)))
 	fmt.Printf(color.CyanString("║")+"  Rate limits: %d/min, %d/day, %d KB payload          "+color.CyanString("║")+"\n",
 		resp.Limits.RequestsPerMinute,
@@ -126,6 +129,9 @@ func runAnonymousListen(endpointURL *url.URL) error {
 	fmt.Printf("Listening for events on anonymous channel %s...\n", color.CyanString(resp.ChannelId))
 	if endpointURL != nil {
 		fmt.Printf("Events will be forwarded to: %s\n", color.CyanString(endpointURL.String()))
+	}
+	if guiURL != nil {
+		fmt.Printf("Events will be visible in GUI at %s\n", color.CyanString(guiURL.String()))
 	}
 	fmt.Println("Press Ctrl+C to stop\n")
 
@@ -188,6 +194,9 @@ func runAnonymousListen(endpointURL *url.URL) error {
 
 		if endpointURL != nil {
 			go forwardEvent(httpClient, event, endpointURL, eventID, event.AppId, event.TopicId)
+		}
+		if guiURL != nil {
+			go ingestEventToGUI(httpClient, event, guiURL)
 		}
 
 		// Send Ready signal to relay to indicate we're ready for next event
