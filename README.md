@@ -17,7 +17,11 @@ Use the [web app](https://hookie.sh) to create applications and webhooks. See th
 
 ## Contributing
 
-Want to contribute? See [CONTRIBUTING.md](CONTRIBUTING.md) for local setup (you'll need your own local Supabase and a development Clerk app) and how to submit changes.
+We welcome contributions to the CLI, docs, and backend services (ingest/relay). The web app is maintained by the core team; we're not looking for community PRs there. See [CONTRIBUTING.md](CONTRIBUTING.md) for local setup (you'll need your own local Supabase and a development Clerk app) and how to submit changes.
+
+## Self-hosting
+
+You are free to self-host Hookie for your own use. The Hookie team does not provide guides or support for self-hosting. You may not use this repository to self-host or operate a competing product.
 
 ## License
 

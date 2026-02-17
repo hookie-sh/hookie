@@ -1,5 +1,7 @@
 # Contributing to Hookie
 
+We welcome contributions to the CLI, docs, and backend services (ingest/relay). The web app is maintained by the core team; we're not looking for community PRs there.
+
 ## How to contribute
 
 1. Create a feature branch
