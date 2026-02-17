@@ -367,9 +367,8 @@ func (c *Client) UpdateConnectionCount(ctx context.Context, machineID, userID, o
 // InsertAnonymousTopic inserts a new anonymous topic record for analytics tracking
 func (c *Client) InsertAnonymousTopic(ctx context.Context, topicID, ip string) error {
 	topicData := map[string]interface{}{
-		"id":           topicID,
-		"ip":           ip,
-		"created_at":   time.Now().Format(time.RFC3339),
+		"id":            topicID,
+		"ip_address":    ip,
 		"request_count": 0,
 	}
 
