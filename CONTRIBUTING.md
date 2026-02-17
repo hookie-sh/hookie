@@ -9,8 +9,8 @@
 
 ## Prerequisites
 
-- **Node.js** >= 18
-- **Go** 1.21 or later
+- **Node.js** >= 24
+- **Go** 1.25 or later
 - **pnpm** (package manager)
 - **Redis** (for event streaming)
 - **Supabase** — run locally for development (see below)
