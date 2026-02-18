@@ -1,4 +1,4 @@
-import { Plans } from "@/features/subscriptions/components/server/plans";
+// import { Plans } from "@/features/subscriptions/components/server/plans";
 import { CTA } from "./_components/cta";
 import { Features } from "./_components/features";
 import { Footer } from "./_components/footer";
@@ -9,7 +9,7 @@ export default async function Home() {
     <>
       <Hero />
       <Features />
-      <Plans />
+      {/* <Plans /> */}
       <CTA />
       <Footer />
     </>
