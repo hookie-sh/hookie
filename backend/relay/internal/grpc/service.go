@@ -43,6 +43,10 @@ type Service struct {
 	
 	// Cache for topicID -> appID lookups to avoid repeated database calls
 	topicAppCache sync.Map // map[string]string (topicID -> appID)
+
+	// Optional test hooks - when non-nil, used instead of supabase for these calls
+	topicAppLookup   interface{ GetTopicApplicationID(context.Context, string) (string, error) }
+	disconnectClient interface{ DisconnectClient(context.Context, string, string, string) error }
 }
 
 // getChannelBufferSize returns the channel buffer size from environment variable or default
@@ -624,8 +628,14 @@ func (s *Service) getTopicApplicationID(ctx context.Context, topicID string) (st
 		return cachedAppID.(string), nil
 	}
 
-	// Cache miss - lookup from database
-	appID, err := s.supabase.GetTopicApplicationID(ctx, topicID)
+	// Cache miss - lookup from database or test hook
+	var appID string
+	var err error
+	if s.topicAppLookup != nil {
+		appID, err = s.topicAppLookup.GetTopicApplicationID(ctx, topicID)
+	} else {
+		appID, err = s.supabase.GetTopicApplicationID(ctx, topicID)
+	}
 	if err != nil {
 		return "", err
 	}
@@ -1008,9 +1018,15 @@ func (s *Service) DisconnectAllClients(ctx context.Context) {
 			machineSubs.mu.Unlock()
 			
 			// Mark as disconnected in database
-			if err := s.supabase.DisconnectClient(ctx, userID, dbMachineIDToDisconnect, orgID); err != nil {
+			var disconnectErr error
+			if s.disconnectClient != nil {
+				disconnectErr = s.disconnectClient.DisconnectClient(ctx, userID, dbMachineIDToDisconnect, orgID)
+			} else {
+				disconnectErr = s.supabase.DisconnectClient(ctx, userID, dbMachineIDToDisconnect, orgID)
+			}
+			if disconnectErr != nil {
 				log.Printf("[DisconnectAllClients] Failed to disconnect client: userID=%s, machineID=%s, orgID=%s, error=%v", 
-					userID, dbMachineIDToDisconnect, orgID, err)
+					userID, dbMachineIDToDisconnect, orgID, disconnectErr)
 				errorCount++
 			} else {
 				log.Printf("[DisconnectAllClients] Successfully disconnected client: userID=%s, machineID=%s, orgID=%s", 
