@@ -6,6 +6,7 @@ require (
 	github.com/clerk/clerk-sdk-go/v2 v2.4.2
 	github.com/joho/godotenv v1.5.1
 	github.com/redis/go-redis/v9 v9.7.0
+	github.com/segmentio/ksuid v1.0.4
 	github.com/supabase-community/supabase-go v0.0.4
 	google.golang.org/grpc v1.74.2
 	google.golang.org/protobuf v1.36.8
@@ -30,7 +31,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
-	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/spf13/afero v1.14.0 // indirect
 	github.com/spf13/cast v1.9.2 // indirect
 	github.com/supabase-community/functions-go v0.0.0-20220927045802-22373e6cb51d // indirect
