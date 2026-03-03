@@ -20,10 +20,10 @@ export function Hero() {
       {/* Content */}
       <div className="relative container mx-auto px-4 py-32 flex flex-col items-center text-center">
         <h2 className="text-4xl md:text-6xl font-bold mb-6">
-          Never miss a webhook again
+          Receive webhooks locally
         </h2>
         <p className="text-xl text-muted-foreground mb-10 max-w-3xl">
-          Build production-ready webhook infrastructure in minutes. Receive, inspect, and route webhooks from any service with enterprise-grade reliability.
+          For developers. Send webhooks to our ingest service—we relay them to your machine through the CLI. No ngrok, no port forwarding. Just run the CLI and start listening.
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
           <Button size="lg" onClick={scrollToWaitlist}>

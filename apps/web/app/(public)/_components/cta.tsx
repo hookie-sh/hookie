@@ -16,7 +16,7 @@ export function CTA() {
               Join the waitlist for early access
             </h2>
             <p className="text-lg text-primary-foreground/90">
-              Be among the first developers to experience seamless webhook management. We'll notify you as soon as Hookie launches.
+              Be among the first developers to receive webhooks locally via the CLI. We'll notify you when Hookie launches.
             </p>
           </div>
           

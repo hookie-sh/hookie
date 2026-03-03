@@ -12,6 +12,7 @@
     "check-types": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@xyflow/react": "^12.10.1",
     "@clerk/backend": "^2.30.1",
     "@clerk/nextjs": "^6.37.3",
     "@clerk/themes": "^2.4.51",
