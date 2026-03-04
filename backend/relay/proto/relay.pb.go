@@ -972,7 +972,7 @@ const file_proto_relay_proto_rawDesc = "" +
 	"\x10ListApplications\x12\x1e.relay.ListApplicationsRequest\x1a\x1f.relay.ListApplicationsResponse\x12A\n" +
 	"\n" +
 	"ListTopics\x12\x18.relay.ListTopicsRequest\x1a\x19.relay.ListTopicsResponse\x12e\n" +
-	"\x16CreateAnonymousChannel\x12$.relay.CreateAnonymousChannelRequest\x1a%.relay.CreateAnonymousChannelResponseB%Z#github.com/hookie-sh/hookie/backend/relay/proto;protob\x06proto3"
+	"\x16CreateAnonymousChannel\x12$.relay.CreateAnonymousChannelRequest\x1a%.relay.CreateAnonymousChannelResponseB7Z5github.com/hookie-sh/hookie/backend/relay/proto;protob\x06proto3"
 
 var (
 	file_proto_relay_proto_rawDescOnce sync.Once
