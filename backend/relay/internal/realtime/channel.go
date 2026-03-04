@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"sync"
 	"time"
 )
@@ -368,48 +367,11 @@ func (ch *Channel) handlePostgresChange(msg *Message) {
 
 // handlePresenceState handles presence_state events
 func (ch *Channel) handlePresenceState(msg *Message) {
-	// #region agent log
-	logFile, _ := os.OpenFile("/Users/valentinprugnaud/Sites/CodyVal/hookie/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if logFile != nil {
-		payloadJSON, _ := json.Marshal(msg.Payload)
-		logData, _ := json.Marshal(map[string]interface{}{
-			"location": "channel.go:309",
-			"message": "Received presence_state event",
-			"data": map[string]interface{}{
-				"topic": ch.topic,
-				"payload": string(payloadJSON),
-			},
-			"timestamp": time.Now().UnixMilli(),
-			"sessionId": "debug-session",
-			"runId": "run1",
-			"hypothesisId": "B",
-		})
-		logFile.WriteString(string(logData) + "\n")
-		logFile.Close()
-	}
-	// #endregion
-
 	ch.mu.RLock()
 	handlers := ch.presenceHandlers
 	ch.mu.RUnlock()
 
 	if len(handlers) == 0 {
-		// #region agent log
-		logFile, _ := os.OpenFile("/Users/valentinprugnaud/Sites/CodyVal/hookie/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if logFile != nil {
-			logData, _ := json.Marshal(map[string]interface{}{
-				"location": "channel.go:316",
-				"message": "No presence handlers registered",
-				"data": map[string]interface{}{"topic": ch.topic},
-				"timestamp": time.Now().UnixMilli(),
-				"sessionId": "debug-session",
-				"runId": "run1",
-				"hypothesisId": "B",
-			})
-			logFile.WriteString(string(logData) + "\n")
-			logFile.Close()
-		}
-		// #endregion
 		return
 	}
 
@@ -432,28 +394,6 @@ func (ch *Channel) handlePresenceState(msg *Message) {
 			}
 		}
 
-		// #region agent log
-		logFile, _ := os.OpenFile("/Users/valentinprugnaud/Sites/CodyVal/hookie/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if logFile != nil {
-			eventJSON, _ := json.Marshal(event)
-			logData, _ := json.Marshal(map[string]interface{}{
-				"location": "channel.go:340",
-				"message": "Calling presence handler with sync event",
-				"data": map[string]interface{}{
-					"topic": ch.topic,
-					"key": key,
-					"event": string(eventJSON),
-				},
-				"timestamp": time.Now().UnixMilli(),
-				"sessionId": "debug-session",
-				"runId": "run1",
-				"hypothesisId": "B",
-			})
-			logFile.WriteString(string(logData) + "\n")
-			logFile.Close()
-		}
-		// #endregion
-
 		for _, handler := range handlers {
 			handler(event)
 		}
@@ -462,27 +402,6 @@ func (ch *Channel) handlePresenceState(msg *Message) {
 
 // handlePresenceDiff handles presence_diff events
 func (ch *Channel) handlePresenceDiff(msg *Message) {
-	// #region agent log
-	logFile, _ := os.OpenFile("/Users/valentinprugnaud/Sites/CodyVal/hookie/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if logFile != nil {
-		payloadJSON, _ := json.Marshal(msg.Payload)
-		logData, _ := json.Marshal(map[string]interface{}{
-			"location": "channel.go:345",
-			"message": "Received presence_diff event",
-			"data": map[string]interface{}{
-				"topic": ch.topic,
-				"payload": string(payloadJSON),
-			},
-			"timestamp": time.Now().UnixMilli(),
-			"sessionId": "debug-session",
-			"runId": "run1",
-			"hypothesisId": "C",
-		})
-		logFile.WriteString(string(logData) + "\n")
-		logFile.Close()
-	}
-	// #endregion
-
 	ch.mu.RLock()
 	handlers := ch.presenceHandlers
 	ch.mu.RUnlock()
@@ -506,28 +425,6 @@ func (ch *Channel) handlePresenceDiff(msg *Message) {
 				}
 			}
 
-			// #region agent log
-			logFile, _ := os.OpenFile("/Users/valentinprugnaud/Sites/CodyVal/hookie/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-			if logFile != nil {
-				eventJSON, _ := json.Marshal(event)
-				logData, _ := json.Marshal(map[string]interface{}{
-					"location": "channel.go:370",
-					"message": "Calling presence handler with join event",
-					"data": map[string]interface{}{
-						"topic": ch.topic,
-						"key": key,
-						"event": string(eventJSON),
-					},
-					"timestamp": time.Now().UnixMilli(),
-					"sessionId": "debug-session",
-					"runId": "run1",
-					"hypothesisId": "C",
-				})
-				logFile.WriteString(string(logData) + "\n")
-				logFile.Close()
-			}
-			// #endregion
-
 			for _, handler := range handlers {
 				handler(event)
 			}
@@ -550,28 +447,6 @@ func (ch *Channel) handlePresenceDiff(msg *Message) {
 					}
 				}
 			}
-
-			// #region agent log
-			logFile, _ := os.OpenFile("/Users/valentinprugnaud/Sites/CodyVal/hookie/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-			if logFile != nil {
-				eventJSON, _ := json.Marshal(event)
-				logData, _ := json.Marshal(map[string]interface{}{
-					"location": "channel.go:395",
-					"message": "Calling presence handler with leave event",
-					"data": map[string]interface{}{
-						"topic": ch.topic,
-						"key": key,
-						"event": string(eventJSON),
-					},
-					"timestamp": time.Now().UnixMilli(),
-					"sessionId": "debug-session",
-					"runId": "run1",
-					"hypothesisId": "C",
-				})
-				logFile.WriteString(string(logData) + "\n")
-				logFile.Close()
-			}
-			// #endregion
 
 			for _, handler := range handlers {
 				handler(event)

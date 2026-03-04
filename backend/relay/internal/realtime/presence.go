@@ -2,10 +2,8 @@ package realtime
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -157,68 +155,14 @@ func (pt *PresenceTracker) AddMachineID(machineID string) {
 		"updated_at": time.Now().Format(time.RFC3339),
 		"machine_ids": machineIDs, // Array of all tracked machine IDs
 	}
-	
-	// #region agent log
-	logFile, _ := os.OpenFile("/Users/valentinprugnaud/Sites/CodyVal/hookie/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if logFile != nil {
-		logData, _ := json.Marshal(map[string]interface{}{
-			"location": "presence.go:159",
-			"message": "About to track presence",
-			"data": map[string]interface{}{
-				"machineID": machineID,
-				"machineIDs": machineIDs,
-				"payload": payload,
-			},
-			"timestamp": time.Now().UnixMilli(),
-			"sessionId": "debug-session",
-			"runId": "run1",
-			"hypothesisId": "A",
-		})
-		logFile.WriteString(string(logData) + "\n")
-		logFile.Close()
-	}
-	// #endregion
 
 	if err := channel.Track(payload); err != nil {
 		log.Printf("[PresenceTracker] Warning: failed to track presence for machine %s: %v", machineID, err)
-		// #region agent log
-		logFile, _ := os.OpenFile("/Users/valentinprugnaud/Sites/CodyVal/hookie/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if logFile != nil {
-			logData, _ := json.Marshal(map[string]interface{}{
-				"location": "presence.go:162",
-				"message": "Track failed",
-				"data": map[string]interface{}{"error": err.Error(), "machineID": machineID},
-				"timestamp": time.Now().UnixMilli(),
-				"sessionId": "debug-session",
-				"runId": "run1",
-				"hypothesisId": "A",
-			})
-			logFile.WriteString(string(logData) + "\n")
-			logFile.Close()
-		}
-		// #endregion
 		return
 	}
 
 	pt.machineChannels[machineID] = channel
 	log.Printf("[PresenceTracker] Tracking presence for machine: %s (total: %d)", machineID, len(machineIDs))
-	
-	// #region agent log
-	logFile, _ = os.OpenFile("/Users/valentinprugnaud/Sites/CodyVal/hookie/.cursor/debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if logFile != nil {
-		logData, _ := json.Marshal(map[string]interface{}{
-			"location": "presence.go:165",
-			"message": "Track succeeded",
-			"data": map[string]interface{}{"machineID": machineID, "totalMachines": len(machineIDs)},
-			"timestamp": time.Now().UnixMilli(),
-			"sessionId": "debug-session",
-			"runId": "run1",
-			"hypothesisId": "A",
-		})
-		logFile.WriteString(string(logData) + "\n")
-		logFile.Close()
-	}
-	// #endregion
 }
 
 // RemoveMachineID removes a machine ID from presence tracking
