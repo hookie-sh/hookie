@@ -46,7 +46,15 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           version: latest
-          args: release --rm-dist
+          args: release
         env:
           CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to npm
+        uses: evg4b/goreleaser-npm-publisher-action@v1
+        with:
+          token: ${{ secrets.NPM_AUTH_TOKEN }}
+          description: Hookie CLI – install and run from npm
+          license: Apache-2.0
+          keywords: cli,hookie,webhooks
