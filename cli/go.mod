@@ -7,6 +7,7 @@ require (
 	github.com/charmbracelet/huh v0.8.0
 	github.com/clerk/clerk-sdk-go/v2 v2.4.2
 	github.com/fatih/color v1.17.0
+	github.com/joho/godotenv v1.5.1
 	github.com/olekukonko/tablewriter v1.1.0
 	github.com/segmentio/ksuid v1.0.4
 	github.com/spf13/cobra v1.8.1

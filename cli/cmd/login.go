@@ -21,16 +21,16 @@ var loginCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
 
-		// Get publishable key (compiled into binary, with optional env override)
+		// Get publishable key (from env, .env, or build-injected)
 		publishableKey := auth.GetPublishableKey()
 		if publishableKey == "" {
-			return fmt.Errorf("clerk publishable key not configured. please set publishablekey in oauth_config.go and rebuild")
+			return fmt.Errorf("clerk publishable key not configured. set CLERK_PUBLISHABLE_KEY or use an official build from https://github.com/hookie-sh/hookie/releases")
 		}
 
 		// Get web app URL
 		webAppURL := auth.GetWebAppURL()
 		if webAppURL == "" {
-			return fmt.Errorf("web app URL not configured. please set WebAppURL in oauth_config.go and rebuild")
+			return fmt.Errorf("web app URL not configured. set HOOKIE_WEB_APP_URL or use an official build from https://github.com/hookie-sh/hookie/releases")
 		}
 
 		// Step 1: Find an available port for the callback server

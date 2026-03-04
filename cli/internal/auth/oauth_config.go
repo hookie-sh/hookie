@@ -13,9 +13,12 @@ import "os"
 
 // OAuthConfig and GetOAuthConfig removed - no longer needed with sign-in token flow
 
-// GetPublishableKey returns the Clerk publishable key for token verification
-// Key is loaded from oauth_config_dev.go (with -tags dev) or oauth_config_prod.go (default)
+// GetPublishableKey returns the Clerk publishable key for token verification.
+// Env CLERK_PUBLISHABLE_KEY takes precedence; otherwise the build-injected PublishableKey is used (e.g. via ldflags in CI).
 func GetPublishableKey() string {
+	if k := os.Getenv("CLERK_PUBLISHABLE_KEY"); k != "" {
+		return k
+	}
 	return PublishableKey
 }
 

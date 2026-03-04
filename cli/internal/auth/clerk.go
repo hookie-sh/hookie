@@ -108,7 +108,7 @@ func DumpTokenPayload(token string) {
 func VerifyToken(ctx context.Context, token string) (string, error) {
 	publishableKey := GetPublishableKey()
 	if publishableKey == "" {
-		return "", fmt.Errorf("publishable key not configured")
+		return "", fmt.Errorf("clerk publishable key not configured: set CLERK_PUBLISHABLE_KEY or use an official build from https://github.com/hookie-sh/hookie/releases")
 	}
 	return verifyTokenJWT(ctx, token, publishableKey)
 }
@@ -124,7 +124,7 @@ type UserInfo struct {
 func GetUserInfoFromToken(ctx context.Context, token string) (*UserInfo, error) {
 	publishableKey := GetPublishableKey()
 	if publishableKey == "" {
-		return nil, fmt.Errorf("publishable key not configured")
+		return nil, fmt.Errorf("clerk publishable key not configured: set CLERK_PUBLISHABLE_KEY or use an official build from https://github.com/hookie-sh/hookie/releases")
 	}
 
 	// Extract token from "Bearer <token>" format if present
@@ -609,7 +609,7 @@ func CompleteSignInWithTicket(ctx context.Context, signInToken string) (string, 
 	// Get publishable key to determine Clerk instance
 	publishableKey := GetPublishableKey()
 	if publishableKey == "" {
-		return "", fmt.Errorf("publishable key not configured")
+		return "", fmt.Errorf("clerk publishable key not configured: set CLERK_PUBLISHABLE_KEY or use an official build from https://github.com/hookie-sh/hookie/releases")
 	}
 
 	// Extract Clerk instance from publishable key
@@ -707,7 +707,7 @@ type signInResponse struct {
 func GetUserInfo(ctx context.Context, sessionToken string) (*UserInfo, error) {
 	publishableKey := GetPublishableKey()
 	if publishableKey == "" {
-		return nil, fmt.Errorf("publishable key not configured")
+		return nil, fmt.Errorf("clerk publishable key not configured: set CLERK_PUBLISHABLE_KEY or use an official build from https://github.com/hookie-sh/hookie/releases")
 	}
 
 	// Extract Clerk instance from publishable key
