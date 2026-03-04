@@ -17,7 +17,7 @@ Use the [web app](https://hookie.sh) to create applications and webhooks. See th
 
 ## Contributing
 
-We welcome contributions to the CLI, docs, and backend services (ingest/relay). The web app is maintained by the core team; we're not looking for community PRs there. See [CONTRIBUTING.md](CONTRIBUTING.md) for local setup (you'll need your own local Supabase and a development Clerk app) and how to submit changes.
+This repository is open for transparency. We are not actively seeking external code contributions at the moment. Issues are open only for **security vulnerabilities** and **bugs**. See [CONTRIBUTING.md](CONTRIBUTING.md) for local setup (you'll need your own local Supabase and a development Clerk app) if you want to run Hookie locally.
 
 ## Self-hosting
 

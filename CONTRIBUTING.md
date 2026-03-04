@@ -1,13 +1,6 @@
 # Contributing to Hookie
 
-We welcome contributions to the CLI, docs, and backend services (ingest/relay). The web app is maintained by the core team; we're not looking for community PRs there.
-
-## How to contribute
-
-1. Create a feature branch
-2. Make your changes
-3. Ensure all tests pass and code is linted
-4. Submit a pull request
+This repository is open for transparency. We are not actively seeking external code contributions at the moment. **Issues are open only for security vulnerabilities and bugs** — please do not open feature requests or other non-essential issues.
 
 ## Prerequisites
 
