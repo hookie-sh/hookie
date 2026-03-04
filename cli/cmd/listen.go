@@ -187,7 +187,7 @@ func runListen(topicID, appID, orgID string, endpointURL *url.URL, topicForwardM
 	}
 
 	fmt.Printf("Listening for events (%s)...\n", subscriptionInfo)
-	fmt.Println("Press Ctrl+C to stop\n")
+	fmt.Println("Press Ctrl+C to stop")
 
 	// Reset event counter for new session
 	atomic.StoreUint64(&eventCounter, 0)

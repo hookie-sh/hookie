@@ -133,7 +133,7 @@ func runAnonymousListen(endpointURL *url.URL, guiURL *url.URL) error {
 	if guiURL != nil {
 		fmt.Printf("Events will be visible in GUI at %s\n", color.CyanString(guiURL.String()))
 	}
-	fmt.Println("Press Ctrl+C to stop\n")
+	fmt.Println("Press Ctrl+C to stop")
 
 	// Reset event counter for new session
 	atomic.StoreUint64(&eventCounter, 0)
