@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/hookie/cli/internal/auth"
-	"github.com/hookie/cli/internal/config"
+	"github.com/hookie-sh/hookie/cli/internal/auth"
+	"github.com/hookie-sh/hookie/cli/internal/config"
 	"github.com/spf13/cobra"
 )
 

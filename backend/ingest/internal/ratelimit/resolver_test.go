@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/hookie/ingest/internal/supabase"
+	"github.com/hookie-sh/hookie/backend/ingest/internal/supabase"
 	"github.com/redis/go-redis/v9"
 )
 

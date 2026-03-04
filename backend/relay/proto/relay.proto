@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package relay;
 
-option go_package = "github.com/hookie/relay/proto;proto";
+option go_package = "github.com/hookie-sh/hookie/backend/relay/proto;proto";
 
 // Relay service for streaming webhook events
 service RelayService {

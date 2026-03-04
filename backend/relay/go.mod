@@ -1,4 +1,4 @@
-module github.com/hookie/relay
+module github.com/hookie-sh/hookie/backend/relay
 
 go 1.25
 

@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/hookie/relay/internal/auth"
-	"github.com/hookie/relay/internal/redis"
-	"github.com/hookie/relay/internal/supabase"
-	"github.com/hookie/relay/proto"
+	"github.com/hookie-sh/hookie/backend/relay/internal/auth"
+	"github.com/hookie-sh/hookie/backend/relay/internal/redis"
+	"github.com/hookie-sh/hookie/backend/relay/internal/supabase"
+	"github.com/hookie-sh/hookie/backend/relay/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )

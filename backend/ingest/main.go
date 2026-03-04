@@ -10,11 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/hookie/ingest/internal/handlers"
-	"github.com/hookie/ingest/internal/middleware"
-	"github.com/hookie/ingest/internal/ratelimit"
-	"github.com/hookie/ingest/internal/redis"
-	"github.com/hookie/ingest/internal/supabase"
+	"github.com/hookie-sh/hookie/backend/ingest/internal/handlers"
+	"github.com/hookie-sh/hookie/backend/ingest/internal/middleware"
+	"github.com/hookie-sh/hookie/backend/ingest/internal/ratelimit"
+	"github.com/hookie-sh/hookie/backend/ingest/internal/redis"
+	"github.com/hookie-sh/hookie/backend/ingest/internal/supabase"
 	"github.com/joho/godotenv"
 )
 

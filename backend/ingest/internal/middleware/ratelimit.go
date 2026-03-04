@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/hookie/ingest/internal/config"
-	"github.com/hookie/ingest/internal/ratelimit"
-	internalredis "github.com/hookie/ingest/internal/redis"
-	"github.com/hookie/ingest/internal/supabase"
+	"github.com/hookie-sh/hookie/backend/ingest/internal/config"
+	"github.com/hookie-sh/hookie/backend/ingest/internal/ratelimit"
+	internalredis "github.com/hookie-sh/hookie/backend/ingest/internal/redis"
+	"github.com/hookie-sh/hookie/backend/ingest/internal/supabase"
 	"github.com/redis/go-redis/v9"
 )
 

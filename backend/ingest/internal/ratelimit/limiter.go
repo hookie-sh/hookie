@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/hookie/ingest/internal/config"
+	"github.com/hookie-sh/hookie/backend/ingest/internal/config"
 	"github.com/redis/go-redis/v9"
 )
 

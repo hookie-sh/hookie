@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/hookie/cli/internal/config"
-	"github.com/hookie/cli/internal/relay"
-	"github.com/hookie/cli/proto"
+	"github.com/hookie-sh/hookie/cli/internal/config"
+	"github.com/hookie-sh/hookie/cli/internal/relay"
+	"github.com/hookie-sh/hookie/cli/proto"
 )
 
 // runAnonymousListen handles anonymous ephemeral channel listening

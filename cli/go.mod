@@ -1,4 +1,4 @@
-module github.com/hookie/cli
+module github.com/hookie-sh/hookie/cli
 
 go 1.25
 

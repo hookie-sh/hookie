@@ -1,4 +1,4 @@
-module github.com/hookie/ingest
+module github.com/hookie-sh/hookie/backend/ingest
 
 go 1.25
 

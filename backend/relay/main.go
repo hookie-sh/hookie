@@ -10,11 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/hookie/relay/internal/auth"
-	"github.com/hookie/relay/internal/grpc"
-	realtime "github.com/hookie/relay/internal/realtime"
-	"github.com/hookie/relay/internal/redis"
-	"github.com/hookie/relay/internal/supabase"
+	"github.com/hookie-sh/hookie/backend/relay/internal/auth"
+	"github.com/hookie-sh/hookie/backend/relay/internal/grpc"
+	realtime "github.com/hookie-sh/hookie/backend/relay/internal/realtime"
+	"github.com/hookie-sh/hookie/backend/relay/internal/redis"
+	"github.com/hookie-sh/hookie/backend/relay/internal/supabase"
 	"github.com/joho/godotenv"
 	"github.com/segmentio/ksuid"
 )

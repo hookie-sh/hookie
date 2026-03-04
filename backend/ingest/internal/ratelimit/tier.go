@@ -3,7 +3,7 @@ package ratelimit
 import (
 	"strings"
 
-	"github.com/hookie/ingest/internal/config"
+	"github.com/hookie-sh/hookie/backend/ingest/internal/config"
 )
 
 type Tier struct {

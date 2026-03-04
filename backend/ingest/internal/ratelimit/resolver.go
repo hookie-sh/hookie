@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hookie/ingest/internal/config"
-	"github.com/hookie/ingest/internal/supabase"
+	"github.com/hookie-sh/hookie/backend/ingest/internal/config"
+	"github.com/hookie-sh/hookie/backend/ingest/internal/supabase"
 	"github.com/redis/go-redis/v9"
 )
 

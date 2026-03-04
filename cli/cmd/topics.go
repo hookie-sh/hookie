@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/fatih/color"
-	"github.com/hookie/cli/internal/config"
-	"github.com/hookie/cli/internal/relay"
+	"github.com/hookie-sh/hookie/cli/internal/config"
+	"github.com/hookie-sh/hookie/cli/internal/relay"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )

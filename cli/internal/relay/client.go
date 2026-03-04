@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hookie/cli/proto"
+	"github.com/hookie-sh/hookie/cli/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"

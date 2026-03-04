@@ -9,8 +9,8 @@ import (
 
 	"github.com/charmbracelet/huh"
 	"github.com/fatih/color"
-	"github.com/hookie/cli/internal/config"
-	"github.com/hookie/cli/internal/relay"
+	"github.com/hookie-sh/hookie/cli/internal/config"
+	"github.com/hookie-sh/hookie/cli/internal/relay"
 	"github.com/spf13/cobra"
 )
 

@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/hookie/relay/internal/supabase"
+	"github.com/hookie-sh/hookie/backend/relay/internal/supabase"
 )
 
 // RelayPresenceListener listens for relay instance presence changes and handles disconnections

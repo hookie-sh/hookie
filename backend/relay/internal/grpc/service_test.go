@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hookie/relay/internal/redis"
+	"github.com/hookie-sh/hookie/backend/relay/internal/redis"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 )
