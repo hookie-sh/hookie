@@ -3,6 +3,10 @@
   "version": "0.0.0",
   "description": "Hookie CLI – install and run from npm",
   "license": "Apache-2.0",
+  "publishConfig": {
+    "provenance": true,
+    "access": "public"
+  },
   "keywords": [
     "cli",
     "hookie",
