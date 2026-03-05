@@ -1,10 +1,17 @@
 {
-  "name": "@hookie/cli",
+  "name": "@hookie-sh/hookie",
   "version": "0.0.0",
   "description": "Hookie CLI – install and run from npm",
   "license": "Apache-2.0",
-  "keywords": ["cli", "hookie", "webhooks"],
-  "files": ["bin", "scripts"],
+  "keywords": [
+    "cli",
+    "hookie",
+    "webhooks"
+  ],
+  "files": [
+    "bin",
+    "scripts"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hookie-sh/hookie.git"

@@ -57,7 +57,7 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           pnpm --filter @hookie/cli exec -- npm version "$VERSION" --no-git-tag-version --allow-same-version
 
-      - name: Publish @hookie/cli to npm
-        run: pnpm publish -r --filter @hookie/cli --no-git-checks --access public
+      - name: Publish @hookie-sh/hookie to npm
+        run: pnpm publish -r --filter @hookie-sh/hookie --no-git-checks --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
