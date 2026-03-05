@@ -2,6 +2,7 @@ packages:
   - apps/*
   - config/*
   - packages/*
+  - "!packages/hookie-cli"
   - backend/*
   - scripts
 
