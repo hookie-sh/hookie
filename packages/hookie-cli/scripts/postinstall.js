@@ -41,14 +41,14 @@ if (!fs.existsSync(binDir)) {
   fs.mkdirSync(binDir, { recursive: true });
 }
 
-function download(url) {
+function download(url, outputFileName = artifactName) {
   return new Promise((resolve, reject) => {
-    const file = path.join(binDir, path.basename(url));
+    const file = path.join(binDir, outputFileName);
     const stream = fs.createWriteStream(file);
     https
       .get(url, { redirect: true }, (res) => {
         if (res.statusCode === 302 || res.statusCode === 301) {
-          download(res.headers.location).then(resolve).catch(reject);
+          download(res.headers.location, outputFileName).then(resolve).catch(reject);
           return;
         }
         if (res.statusCode !== 200) {
