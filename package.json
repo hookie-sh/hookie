@@ -12,7 +12,9 @@
     "check-types": "turbo run check-types"
   },
   "devDependencies": {
+    "adm-zip": "^0.5.16",
     "prettier": "^3.8.1",
+    "tar": "^7.5.10",
     "turbo": "^2.8.13",
     "typescript": "^5.9.3"
   },
