@@ -56,7 +56,7 @@ jobs:
       - name: Set npm package version from tag
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          pnpm --filter @hookie/cli exec -- npm version "$VERSION" --no-git-tag-version --allow-same-version
+          pnpm --filter @hookie-sh/hookie exec -- npm version "$VERSION" --no-git-tag-version --allow-same-version
 
       - name: Publish @hookie-sh/hookie to npm
         run: pnpm publish --filter @hookie-sh/hookie --no-git-checks --provenance
