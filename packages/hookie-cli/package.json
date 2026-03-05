@@ -13,8 +13,7 @@
     "webhooks"
   ],
   "files": [
-    "bin",
-    "scripts"
+    "bin"
   ],
   "repository": {
     "type": "git",
@@ -23,10 +22,14 @@
   "bin": {
     "hookie": "bin/hookie.js"
   },
-  "scripts": {
-    "postinstall": "node scripts/postinstall.js"
+  "optionalDependencies": {
+    "@hookie-sh/hookie-darwin-arm64": "0.0.0",
+    "@hookie-sh/hookie-darwin-x64": "0.0.0",
+    "@hookie-sh/hookie-linux-arm64": "0.0.0",
+    "@hookie-sh/hookie-linux-x64": "0.0.0",
+    "@hookie-sh/hookie-win32-x64": "0.0.0"
   },
-  "dependencies": {
+  "devDependencies": {
     "adm-zip": "^0.5.16",
     "tar": "^7.4.3"
   },

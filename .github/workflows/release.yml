@@ -1,5 +1,6 @@
 # Build and release the Hookie CLI on tag push (e.g. v1.0.0).
-# Requires CLERK_PUBLISHABLE_KEY to be set in repo Actions secrets.
+# Publishes: GoReleaser artifacts to GitHub Release, 5 platform packages to npm, then main @hookie-sh/hookie.
+# Requires CLERK_PUBLISHABLE_KEY and NPM_AUTH_TOKEN in repo Actions secrets.
 name: Release CLI
 
 on:
@@ -53,10 +54,28 @@ jobs:
           CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set npm package version from tag
+      - name: Publish platform packages to npm
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          pnpm --filter @hookie-sh/hookie exec -- npm version "$VERSION" --no-git-tag-version --allow-same-version
+          node packages/hookie-cli/scripts/publish-platform-packages.js "$VERSION" dist
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+
+      - name: Set main package version and optionalDependencies from tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          cd packages/hookie-cli
+          node -e "
+            const v = process.env.VERSION.replace(/^v/, '');
+            const pkg = require('./package.json');
+            pkg.version = v;
+            for (const k of Object.keys(pkg.optionalDependencies || {})) {
+              pkg.optionalDependencies[k] = v;
+            }
+            require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+          "
+        env:
+          VERSION: ${{ github.ref_name }}
 
       - name: Publish @hookie-sh/hookie to npm
         run: pnpm publish --filter @hookie-sh/hookie --no-git-checks --provenance

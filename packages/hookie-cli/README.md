@@ -2,7 +2,7 @@
 
 **Hookie** is a webhook ingestion and relay platform. It lets you receive, inspect, and stream webhook events in real time—from the [web app](https://hookie.sh) or directly in your terminal with this CLI.
 
-This package is the **npm distribution** of the Hookie CLI. Installing it downloads the native binary for your platform (macOS, Linux, Windows) from [GitHub releases](https://github.com/hookie-sh/hookie/releases), so you can run `hookie` without building from source.
+This package is the **npm distribution** of the Hookie CLI. The correct native binary for your platform (macOS, Linux, Windows) is installed automatically via optional dependencies, so you can run `hookie` without building from source.
 
 ## Install
 

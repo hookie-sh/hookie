@@ -25,6 +25,9 @@ out/
 build
 dist
 bin
+# Exception: CLI wrapper must be committed
+!packages/hookie-cli/bin/
+!packages/hookie-cli/bin/hookie.js
 
 # pnpm
 .pnpm-store
