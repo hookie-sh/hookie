@@ -47,8 +47,8 @@ jobs:
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
-          version: latest
-          args: release
+          version: "~> v2"
+          args: release --clean
         env:
           CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
