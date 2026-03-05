@@ -2,7 +2,7 @@
   "name": "scripts",
   "version": "1.0.0",
   "scripts": {
-    "sync:users": "zx clerk/sync-users.mjs"
+    "sync": "zx clerk/sync.mjs"
   },
   "license": "Apache-2.0",
   "dependencies": {
