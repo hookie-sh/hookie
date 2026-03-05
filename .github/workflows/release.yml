@@ -27,6 +27,7 @@ jobs:
         with:
           node-version: "24"
           cache: "pnpm"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -51,10 +52,12 @@ jobs:
           CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish to npm
-        uses: evg4b/goreleaser-npm-publisher-action@v1
-        with:
-          token: ${{ secrets.NPM_AUTH_TOKEN }}
-          description: Hookie CLI – install and run from npm
-          license: Apache-2.0
-          keywords: cli,hookie,webhooks
+      - name: Set npm package version from tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          pnpm --filter @hookie/cli exec -- npm version "$VERSION" --no-git-tag-version --allow-same-version
+
+      - name: Publish @hookie/cli to npm
+        run: pnpm publish -r --filter @hookie/cli --no-git-checks --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}

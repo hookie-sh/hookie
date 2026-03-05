@@ -1,6 +1,5 @@
 packages:
   - apps/*
-  - cli
   - config/*
   - packages/*
   - backend/*
