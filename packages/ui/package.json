@@ -15,12 +15,12 @@
   "devDependencies": {
     "@hookie/eslint-config": "workspace:*",
     "@hookie/typescript-config": "workspace:*",
-    "@types/node": "^22.15.3",
-    "@types/react": "19.2.13",
-    "@types/react-dom": "19.2.3",
-    "eslint": "^9.39.2",
-    "tailwindcss": "^4.1.18",
-    "typescript": "5.9.3"
+    "@types/node": "^25.1.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.3",
+    "tailwindcss": "^4.2.1",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11",
@@ -31,9 +31,9 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "lucide-react": "^0.563.0",
+    "lucide-react": "^0.577.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.5.0"
   }
 }

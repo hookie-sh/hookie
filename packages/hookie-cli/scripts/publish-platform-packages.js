@@ -65,7 +65,7 @@ function extractBinary(archivePath, outDir, binaryName) {
     }
   } else {
     const tar = require("tar");
-    tar.extractSync({ file: archivePath, cwd: outDir });
+    tar.extract({ file: archivePath, cwd: outDir, sync: true });
     const names = fs.readdirSync(outDir);
     const subdir = names.find((n) => n.startsWith("hookie_"));
     if (subdir) {
